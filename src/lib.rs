@@ -1,15 +1,15 @@
-mod grpc;
-mod proto;
+pub use tonic::transport::Channel;
 
 pub use grpc::{
     handle_http_request, handle_http_response, handle_tcp_connection, new_appguard_client,
 };
-pub use proto::appguard::app_guard_client::AppGuardClient;
 pub use proto::appguard::{
-    AppGuardHttpRequest, AppGuardHttpResponse, AppGuardTcpConnection, AppGuardTcpInfo,
-    FirewallPolicy,
+    app_guard_client::AppGuardClient, AppGuardHttpRequest, AppGuardHttpResponse,
+    AppGuardTcpConnection, AppGuardTcpInfo, FirewallPolicy,
 };
-pub use tonic::transport::Channel;
+
+mod grpc;
+mod proto;
 
 #[derive(Default, Clone, Copy)]
 /// `AppGuard` client configuration

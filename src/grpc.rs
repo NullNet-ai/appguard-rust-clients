@@ -1,5 +1,5 @@
-use crate::FirewallPolicy;
 use std::future::Future;
+
 use tonic::transport::{Channel, ClientTlsConfig};
 use tonic::{Request, Response, Status};
 
@@ -8,6 +8,7 @@ use crate::proto::appguard::{
     AppGuardHttpRequest, AppGuardHttpResponse, AppGuardResponse, AppGuardTcpConnection,
     AppGuardTcpInfo, AppGuardTcpResponse,
 };
+use crate::FirewallPolicy;
 
 pub async fn new_appguard_client(
     host: &str,
