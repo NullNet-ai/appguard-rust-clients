@@ -1,6 +1,6 @@
 [package]
-name = "appguard-rust-clients"
-version = "0.1.0"
+name = "appguard-clients-common"
+publish = false
 edition = "2021"
 
 [dependencies]
