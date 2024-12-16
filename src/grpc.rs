@@ -10,6 +10,7 @@ use crate::proto::appguard::{
 };
 use crate::FirewallPolicy;
 
+#[allow(clippy::missing_errors_doc)]
 pub async fn new_appguard_client(
     host: &str,
     port: u16,
@@ -32,6 +33,7 @@ pub async fn new_appguard_client(
     Ok(AppGuardClient::new(channel))
 }
 
+#[allow(clippy::missing_errors_doc)]
 pub async fn handle_tcp_connection(
     client: &mut AppGuardClient<Channel>,
     timeout: Option<u64>,
@@ -51,6 +53,7 @@ pub async fn handle_tcp_connection(
         .await
 }
 
+#[allow(clippy::missing_errors_doc)]
 pub async fn handle_http_request(
     client: &mut AppGuardClient<Channel>,
     timeout: Option<u64>,
@@ -68,6 +71,7 @@ pub async fn handle_http_request(
         .await
 }
 
+#[allow(clippy::missing_errors_doc)]
 pub async fn handle_http_response(
     client: &mut AppGuardClient<Channel>,
     timeout: Option<u64>,
