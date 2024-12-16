@@ -1,0 +1,30 @@
+workflow:
+  auto_cancel:
+    on_new_commit: conservative
+    on_job_failure: all
+
+variables:
+  GIT_SUBMODULE_STRATEGY: recursive
+  GIT_SUBMODULE_FORCE_HTTPS: "true"
+
+default:
+  tags:
+    - docker-52-1-21
+    - rust
+
+fmt:
+  script:
+    - cargo fmt --all -- --check
+
+build:
+  script:
+    - cargo build --verbose
+
+clippy:
+  script:
+    - cargo clippy -- -D warnings
+
+test:
+  script:
+    - cargo test -- --nocapture
+  timeout: 10 minutes
