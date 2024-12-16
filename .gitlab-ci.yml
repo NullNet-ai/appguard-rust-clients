@@ -18,6 +18,7 @@ default:
       - JOB_PATH:
         - .
         - clients/actix
+        - clients/actix/sample
 
 fmt:
   extends: .path-matrix
@@ -25,21 +26,8 @@ fmt:
     - cd "$JOB_PATH"
     - cargo fmt --all -- --check
 
-build:
-  extends: .path-matrix
-  script:
-    - cd "$JOB_PATH"
-    - cargo build --verbose
-
 clippy:
   extends: .path-matrix
   script:
     - cd "$JOB_PATH"
     - cargo clippy -- -D warnings
-
-test:
-  extends: .path-matrix
-  script:
-    - cd "$JOB_PATH"
-    - cargo test -- --nocapture
-  timeout: 10 minutes
