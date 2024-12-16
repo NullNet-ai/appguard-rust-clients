@@ -12,19 +12,32 @@ default:
     - docker-52-1-21
     - rust
 
+.path-matrix:
+  parallel:
+    matrix:
+      - PATH:
+          - .
+          - clients/actix
+  script:
+    - cd $PATH
+
 fmt:
+  extends: .path-matrix
   script:
     - cargo fmt --all -- --check
 
 build:
+  extends: .path-matrix
   script:
     - cargo build --verbose
 
 clippy:
+  extends: .path-matrix
   script:
     - cargo clippy -- -D warnings
 
 test:
+  extends: .path-matrix
   script:
     - cargo test -- --nocapture
   timeout: 10 minutes
