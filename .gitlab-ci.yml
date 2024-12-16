@@ -15,11 +15,11 @@ default:
 .path-matrix:
   parallel:
     matrix:
-      - PATH:
+      - JOB_PATH:
         - .
         - clients/actix
   script:
-    - cd "$PATH"
+    - cd "$JOB_PATH"
 
 fmt:
   extends: .path-matrix
