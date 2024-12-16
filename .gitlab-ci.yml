@@ -16,30 +16,28 @@ default:
   parallel:
     matrix:
       - PATH:
-          - .
-          - clients/actix
+        - .
+        - clients/actix
+  script:
+    - cd "$PATH"
 
 fmt:
   extends: .path-matrix
   script:
-    - cd $PATH
     - cargo fmt --all -- --check
 
 build:
   extends: .path-matrix
   script:
-    - cd $PATH
     - cargo build --verbose
 
 clippy:
   extends: .path-matrix
   script:
-    - cd $PATH
     - cargo clippy -- -D warnings
 
 test:
   extends: .path-matrix
   script:
-    - cd $PATH
     - cargo test -- --nocapture
   timeout: 10 minutes
