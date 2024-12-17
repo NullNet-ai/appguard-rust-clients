@@ -1,0 +1,9 @@
+[package]
+name = "sample"
+publish = false
+edition = "2021"
+
+[dependencies]
+appguard-axum = { path = ".."}
+axum = "0.7.9"
+tokio = { version = "1.42.0", features = ["macros", "rt-multi-thread"] }

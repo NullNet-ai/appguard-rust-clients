@@ -19,6 +19,8 @@ default:
         - .
         - clients/actix
         - clients/actix/sample
+        - clients/axum
+        - clients/axum/sample
 
 fmt:
   extends: .path-matrix

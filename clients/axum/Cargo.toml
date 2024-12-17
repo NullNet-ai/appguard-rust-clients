@@ -1,0 +1,11 @@
+[package]
+name = "appguard-axum"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+appguard-clients-common = { path = "../.." }
+axum = "0.7.9"
+tower = "0.5.2"
+futures = {version = "0.3.31", default-features = false, features = ["executor"]}
+qstring = "0.7.2"
