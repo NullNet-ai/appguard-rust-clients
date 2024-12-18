@@ -98,9 +98,7 @@ where
             let Ok(AppGuardTcpResponse { tcp_info }) =
                 handle_tcp_connection(&mut client, timeout, to_appguard_tcp_connection(&req)).await
             else {
-                let mut response = Response::new(Body::from("Internal server error"));
-                *response.status_mut() = StatusCode::INTERNAL_SERVER_ERROR;
-                return Ok(response);
+                return Ok(internal_server_error_response());
             };
 
             let Ok(request_handler_res) = handle_http_request(
@@ -111,16 +109,12 @@ where
             )
             .await
             else {
-                let mut response = Response::new(Body::from("Internal server error"));
-                *response.status_mut() = StatusCode::INTERNAL_SERVER_ERROR;
-                return Ok(response);
+                return Ok(internal_server_error_response());
             };
 
             let policy = FirewallPolicy::try_from(request_handler_res.policy).unwrap_or_default();
             if policy == FirewallPolicy::Deny {
-                let mut response = Response::new(Body::from("Unauthorized"));
-                *response.status_mut() = StatusCode::UNAUTHORIZED;
-                return Ok(response);
+                return Ok(unauthorized_response());
             }
 
             let fut = next_service.lock().unwrap().call(req);
@@ -135,19 +129,27 @@ where
             )
             .await
             else {
-                let mut response = Response::new(Body::from("Internal server error"));
-                *response.status_mut() = StatusCode::INTERNAL_SERVER_ERROR;
-                return Ok(response);
+                return Ok(internal_server_error_response());
             };
 
             let policy = FirewallPolicy::try_from(response_handler_res.policy).unwrap_or_default();
             if policy == FirewallPolicy::Deny {
-                let mut response = Response::new(Body::from("Unauthorized"));
-                *response.status_mut() = StatusCode::UNAUTHORIZED;
-                return Ok(response);
+                return Ok(unauthorized_response());
             }
 
             Ok(resp)
         })
     }
+}
+
+fn unauthorized_response() -> Response {
+    let mut response = Response::new(Body::from("Unauthorized"));
+    *response.status_mut() = StatusCode::UNAUTHORIZED;
+    response
+}
+
+fn internal_server_error_response() -> Response {
+    let mut response = Response::new(Body::from("Internal server error"));
+    *response.status_mut() = StatusCode::INTERNAL_SERVER_ERROR;
+    response
 }
