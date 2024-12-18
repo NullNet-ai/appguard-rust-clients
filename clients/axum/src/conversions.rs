@@ -1,8 +1,8 @@
-use axum::extract::{Request};
+use axum::extract::Request;
 use axum::http::{HeaderMap, Response};
+use qstring::QString;
 use std::collections::HashMap;
 use std::net::SocketAddr;
-use qstring::QString;
 
 use appguard_clients_common::{
     AppGuardHttpRequest, AppGuardHttpResponse, AppGuardTcpConnection, AppGuardTcpInfo,

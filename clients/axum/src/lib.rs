@@ -1,6 +1,6 @@
 pub use appguard_clients_common::FirewallPolicy;
 
-pub use axum_middleware::AppGuardConfig;
+pub use middleware::AppGuardConfig;
 
-mod axum_middleware;
 mod conversions;
+mod middleware;

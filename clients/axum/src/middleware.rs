@@ -56,7 +56,8 @@ impl<S> Layer<S> for AppGuardConfig {
 
     fn layer(&self, inner: S) -> Self::Service {
         let config = self.0;
-        let client = block_on(new_appguard_client(config.host, config.port, config.tls)).unwrap();
+        let client = block_on(new_appguard_client(config.host, config.port, config.tls))
+            .expect("Unable to start gRPC client");
         AppGuardMiddleware {
             client,
             default_policy: config.default_policy,
