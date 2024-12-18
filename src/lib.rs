@@ -5,7 +5,7 @@ pub use grpc::{
 };
 pub use proto::appguard::{
     app_guard_client::AppGuardClient, AppGuardHttpRequest, AppGuardHttpResponse,
-    AppGuardTcpConnection, AppGuardTcpInfo, FirewallPolicy, AppGuardTcpResponse
+    AppGuardTcpConnection, AppGuardTcpInfo, AppGuardTcpResponse, FirewallPolicy,
 };
 
 mod grpc;
