@@ -1,5 +1,4 @@
 use axum::extract::{Request};
-use axum::http::uri::Scheme;
 use axum::http::{HeaderMap, Response};
 use std::collections::HashMap;
 use std::net::SocketAddr;
@@ -19,8 +18,8 @@ pub(crate) fn to_appguard_tcp_connection(req: &Request) -> AppGuardTcpConnection
 
     let protocol = req
         .extensions()
-        .get::<Scheme>()
-        .map(std::string::ToString::to_string)
+        .get::<axum_extra::extract::Scheme>()
+        .map(|s| s.0.clone())
         .unwrap_or_default();
 
     AppGuardTcpConnection {
