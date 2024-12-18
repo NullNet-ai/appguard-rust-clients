@@ -25,8 +25,7 @@ async fn main() -> std::io::Result<()> {
             .wrap(appguard_config)
             .service(hello)
             .service(
-                actix_files::Files::new("/", "/Users/giulianobellini/Desktop/formMD")
-                    .index_file("index.html"),
+                actix_files::Files::new("/", "../../../static/formMD").index_file("index.html"),
             )
             .default_service(web::get().to(not_found))
     })

@@ -23,7 +23,7 @@ async fn not_found() -> Response<String> {
 }
 
 #[derive(RustEmbed, Clone)]
-#[folder = "/Users/giulianobellini/Desktop/formMD/"]
+#[folder = "../../../static/formMD"]
 struct FormMD;
 
 #[tokio::main]
