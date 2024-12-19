@@ -8,11 +8,15 @@ use appguard_clients_common::{
 use qstring::QString;
 
 pub(crate) fn to_appguard_tcp_connection(req: &ServiceRequest) -> AppGuardTcpConnection {
-    let source = req.peer_addr();
+    let source_ip = req
+        .connection_info()
+        .realip_remote_addr()
+        .map(std::string::ToString::to_string);
+    let source_port = req.peer_addr().map(|s| u32::from(s.port()));
     let destination = req.app_config().local_addr();
     AppGuardTcpConnection {
-        source_ip: source.map(|s| s.ip().to_string()),
-        source_port: source.map(|s| u32::from(s.port())),
+        source_ip,
+        source_port,
         destination_ip: Some(destination.ip().to_string()),
         destination_port: Some(u32::from(destination.port())),
         protocol: req.connection_info().scheme().to_string(),
