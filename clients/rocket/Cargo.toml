@@ -1,0 +1,9 @@
+[package]
+name = "appguard-rocket"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+appguard-clients-common = { path = "../.." }
+rocket = "0.5.1"
+qstring = "0.7.2"
