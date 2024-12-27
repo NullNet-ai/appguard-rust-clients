@@ -3,17 +3,13 @@ extern crate rocket;
 
 use appguard_rocket::AppGuardConfig;
 use appguard_rocket::FirewallPolicy;
+use rocket::fs::{relative, FileServer};
 use std::net::ToSocketAddrs;
 
 #[cfg(debug_assertions)]
 const HOST: &str = "localhost";
 #[cfg(not(debug_assertions))]
 const HOST: &str = "appguard";
-
-#[get("/")]
-fn hello() -> &'static str {
-    "Hello, world!"
-}
 
 #[launch]
 async fn rocket() -> _ {
@@ -33,5 +29,5 @@ async fn rocket() -> _ {
 
     rocket::custom(rocket_config)
         .attach(appguard_config)
-        .mount("/", routes![hello])
+        .mount("/", FileServer::from(relative!("../../../static/formMD")))
 }
