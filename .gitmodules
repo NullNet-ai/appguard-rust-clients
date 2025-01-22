@@ -1,4 +1,0 @@
-[submodule "appguard-protobuf"]
-	path = appguard-protobuf
-	url = https://gitlab.nullnet.ai/nullnet/appguard-protobuf.git
-	branch = main

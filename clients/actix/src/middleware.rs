@@ -7,10 +7,7 @@ use actix_web::{
     dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform},
     Error, HttpResponse, ResponseError,
 };
-use appguard_clients_common::{
-    handle_http_request, handle_http_response, handle_tcp_connection, new_appguard_client,
-    AppGuardClient, Channel, FirewallPolicy,
-};
+use appguard_server::{AppGuardGrpcInterface, FirewallPolicy};
 
 use crate::conversions::{
     to_appguard_http_request, to_appguard_http_response, to_appguard_tcp_connection,
@@ -18,7 +15,13 @@ use crate::conversions::{
 
 #[derive(Default, Clone, Copy)]
 /// `AppGuard` client configuration.
-pub struct AppGuardConfig(appguard_clients_common::AppGuardConfig);
+pub struct AppGuardConfig {
+    host: &'static str,
+    port: u16,
+    tls: bool,
+    timeout: Option<u64>,
+    default_policy: FirewallPolicy,
+}
 
 impl AppGuardConfig {
     /// Create a new configuration for the client.
@@ -38,13 +41,13 @@ impl AppGuardConfig {
         timeout: Option<u64>,
         default_policy: FirewallPolicy,
     ) -> Self {
-        AppGuardConfig(appguard_clients_common::AppGuardConfig {
+        AppGuardConfig {
             host,
             port,
             tls,
             timeout,
             default_policy,
-        })
+        }
     }
 }
 
@@ -62,9 +65,9 @@ where
     type Future = LocalBoxFuture<Result<Self::Transform, Self::InitError>>;
 
     fn new_transform(&self, service: S) -> Self::Future {
-        let config = self.0;
+        let config = self.to_owned();
         Box::pin(async move {
-            let client = new_appguard_client(config.host, config.port, config.tls)
+            let client = AppGuardGrpcInterface::new(config.host, config.port, config.tls)
                 .await
                 .map_err(|_| ())?;
 
@@ -79,7 +82,7 @@ where
 }
 
 pub struct AppGuardMiddleware<S> {
-    client: AppGuardClient<Channel>,
+    client: AppGuardGrpcInterface,
     default_policy: FirewallPolicy,
     timeout: Option<u64>,
     next_service: Rc<S>,
@@ -104,20 +107,20 @@ where
         let next_service = self.next_service.clone();
 
         Box::pin(async move {
-            let tcp_info =
-                handle_tcp_connection(&mut client, timeout, to_appguard_tcp_connection(&req))
-                    .await
-                    .map_err(|e| GrcpError::new(e.message()))?
-                    .tcp_info;
+            let tcp_info = client
+                .handle_tcp_connection(timeout, to_appguard_tcp_connection(&req))
+                .await
+                .map_err(|e| GrcpError::new(e.message()))?
+                .tcp_info;
 
-            let request_handler_res = handle_http_request(
-                &mut client,
-                timeout,
-                default_policy,
-                to_appguard_http_request(&req, tcp_info.clone()),
-            )
-            .await
-            .map_err(|e| GrcpError::new(e.message()))?;
+            let request_handler_res = client
+                .handle_http_request(
+                    timeout,
+                    default_policy,
+                    to_appguard_http_request(&req, tcp_info.clone()),
+                )
+                .await
+                .map_err(|e| GrcpError::new(e.message()))?;
 
             let policy = FirewallPolicy::try_from(request_handler_res.policy).unwrap_or_default();
             if policy == FirewallPolicy::Deny {
@@ -128,14 +131,14 @@ where
 
             let resp: ServiceResponse = fut.await?;
 
-            let response_handler_res = handle_http_response(
-                &mut client,
-                timeout,
-                default_policy,
-                to_appguard_http_response(&resp, tcp_info),
-            )
-            .await
-            .map_err(|e| GrcpError::new(e.message()))?;
+            let response_handler_res = client
+                .handle_http_response(
+                    timeout,
+                    default_policy,
+                    to_appguard_http_response(&resp, tcp_info),
+                )
+                .await
+                .map_err(|e| GrcpError::new(e.message()))?;
 
             let policy = FirewallPolicy::try_from(response_handler_res.policy).unwrap_or_default();
             if policy == FirewallPolicy::Deny {

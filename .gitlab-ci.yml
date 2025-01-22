@@ -3,33 +3,15 @@ workflow:
     on_new_commit: conservative
     on_job_failure: all
 
-variables:
-  GIT_SUBMODULE_STRATEGY: recursive
-  GIT_SUBMODULE_FORCE_HTTPS: "true"
-
 default:
   tags:
     - docker-52-1-21
     - rust
 
-.path-matrix:
-  parallel:
-    matrix:
-      - JOB_PATH:
-        - .
-        - clients/actix
-        - clients/actix/sample
-        - clients/axum
-        - clients/axum/sample
-
 fmt:
-  extends: .path-matrix
   script:
-    - cd "$JOB_PATH"
     - cargo fmt --all -- --check
 
 clippy:
-  extends: .path-matrix
   script:
-    - cd "$JOB_PATH"
     - cargo clippy -- -D warnings

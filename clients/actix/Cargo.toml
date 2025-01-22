@@ -4,6 +4,6 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-appguard-clients-common = { path = "../.." }
+appguard-server.workspace = true
 actix-web = "4.9.0"
 qstring = "0.7.2"

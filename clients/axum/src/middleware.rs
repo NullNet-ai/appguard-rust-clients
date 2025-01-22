@@ -8,10 +8,7 @@ use futures::executor::block_on;
 use std::task::{Context, Poll};
 use tower::{Layer, Service};
 
-use appguard_clients_common::{
-    handle_http_request, handle_http_response, handle_tcp_connection, new_appguard_client,
-    AppGuardClient, AppGuardTcpResponse, Channel, FirewallPolicy,
-};
+use appguard_server::{AppGuardGrpcInterface, AppGuardTcpResponse, FirewallPolicy};
 
 use crate::conversions::{
     to_appguard_http_request, to_appguard_http_response, to_appguard_tcp_connection,
@@ -19,7 +16,13 @@ use crate::conversions::{
 
 #[derive(Default, Clone, Copy)]
 /// `AppGuard` client configuration.
-pub struct AppGuardConfig(appguard_clients_common::AppGuardConfig);
+pub struct AppGuardConfig {
+    host: &'static str,
+    port: u16,
+    tls: bool,
+    timeout: Option<u64>,
+    default_policy: FirewallPolicy,
+}
 
 impl AppGuardConfig {
     /// Create a new configuration for the client.
@@ -39,13 +42,13 @@ impl AppGuardConfig {
         timeout: Option<u64>,
         default_policy: FirewallPolicy,
     ) -> Self {
-        AppGuardConfig(appguard_clients_common::AppGuardConfig {
+        AppGuardConfig {
             host,
             port,
             tls,
             timeout,
             default_policy,
-        })
+        }
     }
 }
 
@@ -55,9 +58,13 @@ impl<S> Layer<S> for AppGuardConfig {
     type Service = AppGuardMiddleware<S>;
 
     fn layer(&self, inner: S) -> Self::Service {
-        let config = self.0;
-        let client = block_on(new_appguard_client(config.host, config.port, config.tls))
-            .expect("Unable to start gRPC client");
+        let config = self;
+        let client = block_on(AppGuardGrpcInterface::new(
+            config.host,
+            config.port,
+            config.tls,
+        ))
+        .expect("Unable to start gRPC client");
         AppGuardMiddleware {
             client,
             default_policy: config.default_policy,
@@ -69,7 +76,7 @@ impl<S> Layer<S> for AppGuardConfig {
 
 #[derive(Clone)]
 pub struct AppGuardMiddleware<S> {
-    client: AppGuardClient<Channel>,
+    client: AppGuardGrpcInterface,
     default_policy: FirewallPolicy,
     timeout: Option<u64>,
     next_service: Arc<Mutex<S>>,
@@ -95,19 +102,20 @@ where
         let next_service = self.next_service.clone();
 
         Box::pin(async move {
-            let Ok(AppGuardTcpResponse { tcp_info }) =
-                handle_tcp_connection(&mut client, timeout, to_appguard_tcp_connection(&req)).await
+            let Ok(AppGuardTcpResponse { tcp_info }) = client
+                .handle_tcp_connection(timeout, to_appguard_tcp_connection(&req))
+                .await
             else {
                 return Ok(internal_server_error_response());
             };
 
-            let Ok(request_handler_res) = handle_http_request(
-                &mut client,
-                timeout,
-                default_policy,
-                to_appguard_http_request(&req, tcp_info.clone()),
-            )
-            .await
+            let Ok(request_handler_res) = client
+                .handle_http_request(
+                    timeout,
+                    default_policy,
+                    to_appguard_http_request(&req, tcp_info.clone()),
+                )
+                .await
             else {
                 return Ok(internal_server_error_response());
             };
@@ -121,13 +129,13 @@ where
 
             let resp: Response = fut.await?;
 
-            let Ok(response_handler_res) = handle_http_response(
-                &mut client,
-                timeout,
-                default_policy,
-                to_appguard_http_response(&resp, tcp_info),
-            )
-            .await
+            let Ok(response_handler_res) = client
+                .handle_http_response(
+                    timeout,
+                    default_policy,
+                    to_appguard_http_response(&resp, tcp_info),
+                )
+                .await
             else {
                 return Ok(internal_server_error_response());
             };
