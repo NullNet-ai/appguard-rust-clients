@@ -1,4 +1,4 @@
-pub use appguard_server::entrypoint;
+pub use appguard_server::FirewallPolicy;
 
 pub use middleware::AppGuardConfig;
 

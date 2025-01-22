@@ -2,8 +2,11 @@
 resolver = "2"
 members = [
     "clients/actix",
+    "clients/actix/sample",
     "clients/axum",
+    "clients/axum/sample",
     "clients/rocket",
+    "clients/rocket/sample",
 ]
 
 [workspace.dependencies]
