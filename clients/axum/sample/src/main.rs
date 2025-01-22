@@ -30,7 +30,7 @@ struct FormMD;
 async fn main() {
     let appguard_config = AppGuardConfig::new(HOST, 50051, true, Some(1000), FirewallPolicy::Allow);
 
-    let listener = tokio::net::TcpListener::bind(format!("{HOST}:3001"))
+    let listener = tokio::net::TcpListener::bind(format!("{HOST}:3002"))
         .await
         .unwrap();
 

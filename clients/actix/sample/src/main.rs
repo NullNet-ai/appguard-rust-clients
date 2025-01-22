@@ -24,12 +24,10 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .wrap(appguard_config)
             .service(hello)
-            .service(
-                actix_files::Files::new("/", "../../../static/formMD").index_file("index.html"),
-            )
+            .service(actix_files::Files::new("/", "./static/formMD").index_file("index.html"))
             .default_service(web::get().to(not_found))
     })
-    .bind((HOST, 3000))?
+    .bind((HOST, 3001))?
     .run()
     .await
 }

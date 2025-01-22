@@ -313,7 +313,7 @@ name = "appguard-axum"
 version = "0.1.0"
 dependencies = [
  "appguard-server",
- "axum 0.8.2",
+ "axum 0.7.9",
  "axum-extra",
  "futures",
  "qstring",
@@ -426,37 +426,10 @@ dependencies = [
  "http 1.2.0",
  "http-body 1.0.1",
  "http-body-util",
- "itoa",
- "matchit 0.7.3",
- "memchr",
- "mime",
- "percent-encoding",
- "pin-project-lite",
- "rustversion",
- "serde",
- "sync_wrapper",
- "tower 0.5.2",
- "tower-layer",
- "tower-service",
-]
-
-[[package]]
-name = "axum"
-version = "0.8.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "efea76243612a2436fb4074ba0cf3ba9ea29efdeb72645d8fc63f116462be1de"
-dependencies = [
- "axum-core 0.5.1",
- "bytes",
- "form_urlencoded",
- "futures-util",
- "http 1.2.0",
- "http-body 1.0.1",
- "http-body-util",
  "hyper 1.5.2",
  "hyper-util",
  "itoa",
- "matchit 0.8.4",
+ "matchit 0.7.3",
  "memchr",
  "mime",
  "percent-encoding",
@@ -468,6 +441,33 @@ dependencies = [
  "serde_urlencoded",
  "sync_wrapper",
  "tokio",
+ "tower 0.5.2",
+ "tower-layer",
+ "tower-service",
+ "tracing",
+]
+
+[[package]]
+name = "axum"
+version = "0.8.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "efea76243612a2436fb4074ba0cf3ba9ea29efdeb72645d8fc63f116462be1de"
+dependencies = [
+ "axum-core 0.5.1",
+ "bytes",
+ "futures-util",
+ "http 1.2.0",
+ "http-body 1.0.1",
+ "http-body-util",
+ "itoa",
+ "matchit 0.8.4",
+ "memchr",
+ "mime",
+ "percent-encoding",
+ "pin-project-lite",
+ "rustversion",
+ "serde",
+ "sync_wrapper",
  "tower 0.5.2",
  "tower-layer",
  "tower-service",
@@ -492,6 +492,7 @@ dependencies = [
  "sync_wrapper",
  "tower-layer",
  "tower-service",
+ "tracing",
 ]
 
 [[package]]
@@ -530,9 +531,9 @@ dependencies = [
 
 [[package]]
 name = "axum-extra"
-version = "0.11.0"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "543f0799d22486525744f06a3580b64f3e51d97aba73ea0e09040969c0034722"
+checksum = "460fc6f625a1f7705c6cf62d0d070794e94668988b1c38111baeec177c715f7b"
 dependencies = [
  "axum 0.8.2",
  "axum-core 0.5.1",
@@ -554,7 +555,7 @@ name = "axum_sample"
 version = "0.0.0"
 dependencies = [
  "appguard-axum",
- "axum 0.8.2",
+ "axum 0.7.9",
  "axum-embed",
  "rust-embed",
  "tokio",
