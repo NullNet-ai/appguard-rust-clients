@@ -8,7 +8,7 @@ use futures::executor::block_on;
 use std::task::{Context, Poll};
 use tower::{Layer, Service};
 
-use appguard_server::{AppGuardGrpcInterface, AppGuardTcpResponse, FirewallPolicy};
+use nullnet_libappguard::{AppGuardGrpcInterface, AppGuardTcpResponse, FirewallPolicy};
 
 use crate::conversions::{
     to_appguard_http_request, to_appguard_http_response, to_appguard_tcp_connection,

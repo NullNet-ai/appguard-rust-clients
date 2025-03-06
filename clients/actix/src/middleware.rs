@@ -7,7 +7,7 @@ use actix_web::{
     dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform},
     Error, HttpResponse, ResponseError,
 };
-use appguard_server::{AppGuardGrpcInterface, FirewallPolicy};
+use nullnet_libappguard::{AppGuardGrpcInterface, FirewallPolicy};
 
 use crate::conversions::{
     to_appguard_http_request, to_appguard_http_response, to_appguard_tcp_connection,

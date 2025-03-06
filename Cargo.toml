@@ -10,4 +10,4 @@ members = [
 ]
 
 [workspace.dependencies]
-appguard-server = { path = "../appguard-server", features = ["grpc-lib-only"] }
+nullnet-libappguard = { path = "../appguard-server/libappguard" }

@@ -4,9 +4,7 @@ use qstring::QString;
 use std::collections::HashMap;
 use std::net::SocketAddr;
 
-use appguard_server::{
-    AppGuardHttpRequest, AppGuardHttpResponse, AppGuardTcpConnection, AppGuardTcpInfo,
-};
+use nullnet_libappguard::{AppGuardHttpRequest, AppGuardHttpResponse, AppGuardTcpConnection, AppGuardTcpInfo, Authentication};
 
 pub(crate) fn to_appguard_tcp_connection(req: &Request) -> AppGuardTcpConnection {
     let source = req
@@ -23,6 +21,7 @@ pub(crate) fn to_appguard_tcp_connection(req: &Request) -> AppGuardTcpConnection
         .unwrap_or_default();
 
     AppGuardTcpConnection {
+        auth: Authentication { token: "".to_string() },
         source_ip: source.map(|s| s.ip().to_string()),
         source_port: source.map(|s| u32::from(s.port())),
         destination_ip: destination.map(|s| s.ip().to_string()),
