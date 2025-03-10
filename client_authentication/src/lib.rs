@@ -1,3 +1,4 @@
+mod heartbeat;
 mod login_impl;
 mod token_wrapper;
 
@@ -23,7 +24,7 @@ impl AuthHandler {
         let mut auth = Self {
             app_id,
             app_secret,
-            client,
+            client: client.clone(),
             token: Arc::new(Mutex::new(None)),
         };
 
@@ -35,6 +36,9 @@ impl AuthHandler {
             log::warn!("Device has been archived or deleted, aborting execution ...",);
             std::process::exit(0);
         }
+
+        let auth_2 = auth.clone();
+        tokio::spawn(async move { heartbeat::routine(auth_2, client).await });
 
         auth
     }
