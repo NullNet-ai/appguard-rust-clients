@@ -20,7 +20,9 @@ pub struct AuthHandler {
 impl AuthHandler {
     #[must_use]
     #[allow(clippy::missing_panics_doc)]
-    pub fn new(app_id: String, app_secret: String, client: AppGuardGrpcInterface) -> Self {
+    pub fn new(client: AppGuardGrpcInterface) -> Self {
+        let app_id = std::env::var("APP_ID").unwrap_or_default();
+        let app_secret = std::env::var("APP_SECRET").unwrap_or_default();
         let mut auth = Self {
             app_id,
             app_secret,
