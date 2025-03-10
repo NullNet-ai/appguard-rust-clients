@@ -40,10 +40,10 @@ impl AppGuardConfig {
             .await
             .expect("Unable to start gRPC client");
         AppGuardConfig {
-            client,
+            client: client.clone(),
             default_policy,
             timeout,
-            auth: AuthHandler::new("".to_string(), "".to_string(), host.to_string(), port),
+            auth: AuthHandler::new("".to_string(), "".to_string(), client),
         }
     }
 }

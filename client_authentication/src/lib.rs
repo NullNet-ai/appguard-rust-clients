@@ -1,30 +1,42 @@
 mod login_impl;
 mod token_wrapper;
 
+use futures::executor::block_on;
 use login_impl::login_impl;
+use nullnet_libappguard::{AppGuardGrpcInterface, Authentication, DeviceStatus, SetupRequest};
 use std::sync::Arc;
 use token_wrapper::TokenWrapper;
 use tokio::sync::Mutex;
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct AuthHandler {
     app_id: String,
     app_secret: String,
-    server_addr: String,
-    server_port: u16,
     token: Arc<Mutex<Option<TokenWrapper>>>,
+    client: AppGuardGrpcInterface,
 }
 
 impl AuthHandler {
     #[must_use]
-    pub fn new(app_id: String, app_secret: String, server_addr: String, server_port: u16) -> Self {
-        Self {
+    #[allow(clippy::missing_panics_doc)]
+    pub fn new(app_id: String, app_secret: String, client: AppGuardGrpcInterface) -> Self {
+        let mut auth = Self {
             app_id,
             app_secret,
-            server_addr,
-            server_port,
+            client,
             token: Arc::new(Mutex::new(None)),
+        };
+
+        let status = block_on(auth.fetch_status()).expect("Failed to fetch device status");
+
+        if status == DeviceStatus::DsDraft {
+            block_on(auth.setup_request()).expect("Setup request failed");
+        } else if status == DeviceStatus::DsArchived || status == DeviceStatus::DsDeleted {
+            log::warn!("Device has been archived or deleted, aborting execution ...",);
+            std::process::exit(0);
         }
+
+        auth
     }
 
     #[allow(clippy::missing_errors_doc)]
@@ -34,8 +46,7 @@ impl AuthHandler {
 
         if token.as_ref().is_none_or(TokenWrapper::is_expired) {
             let new_token = login_impl(
-                &self.server_addr,
-                self.server_port,
+                self.client.clone(),
                 self.app_id.clone(),
                 self.app_secret.clone(),
             )
@@ -45,5 +56,31 @@ impl AuthHandler {
         }
 
         Ok(token.as_ref().unwrap().jwt.clone())
+    }
+
+    async fn setup_request(&mut self) -> Result<(), String> {
+        let token = self.obtain_token_safe().await.expect("Unauthenticated");
+
+        let _ = self
+            .client
+            .setup(SetupRequest {
+                auth: Some(Authentication { token }),
+                device_version: "".to_string(),
+                device_uuid: "".to_string(),
+            })
+            .await?;
+
+        Ok(())
+    }
+
+    async fn fetch_status(&mut self) -> Result<DeviceStatus, String> {
+        let token = self.obtain_token_safe().await.expect("Unauthenticated");
+
+        let response = self.client.status(token).await?;
+
+        let status = DeviceStatus::try_from(response.status)
+            .map_err(|e| format!("Wrong DeviceStatus value: {}", e.0))?;
+
+        Ok(status)
     }
 }

@@ -73,15 +73,10 @@ where
                 .map_err(|_| ())?;
 
             Ok(AppGuardMiddleware {
-                client,
+                client: client.clone(),
                 default_policy: config.default_policy,
                 timeout: config.timeout,
-                auth: AuthHandler::new(
-                    "".to_string(),
-                    "".to_string(),
-                    config.host.to_string(),
-                    config.port,
-                ),
+                auth: AuthHandler::new("".to_string(), "".to_string(), client),
                 next_service: Rc::new(service),
             })
         })

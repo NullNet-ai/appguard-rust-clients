@@ -7,3 +7,5 @@ edition = "2024"
 nullnet-libappguard.workspace = true
 nullnet-libtoken = "0.1.1"
 tokio = "1.43.0"
+log = "0.4.26"
+futures = { version = "0.3.17", features = ["executor"] }
