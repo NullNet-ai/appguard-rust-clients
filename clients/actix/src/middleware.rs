@@ -7,6 +7,7 @@ use actix_web::{
     dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform},
     Error, HttpResponse, ResponseError,
 };
+use appguard_client_authentication::AuthHandler;
 use nullnet_libappguard::{AppGuardGrpcInterface, FirewallPolicy};
 
 use crate::conversions::{
@@ -75,6 +76,12 @@ where
                 client,
                 default_policy: config.default_policy,
                 timeout: config.timeout,
+                auth: AuthHandler::new(
+                    "".to_string(),
+                    "".to_string(),
+                    config.host.to_string(),
+                    config.port,
+                ),
                 next_service: Rc::new(service),
             })
         })
@@ -85,6 +92,7 @@ pub struct AppGuardMiddleware<S> {
     client: AppGuardGrpcInterface,
     default_policy: FirewallPolicy,
     timeout: Option<u64>,
+    auth: AuthHandler,
     next_service: Rc<S>,
 }
 
@@ -104,11 +112,14 @@ where
         let mut client = self.client.clone();
         let timeout = self.timeout;
         let default_policy = self.default_policy;
+        let auth = self.auth.clone();
         let next_service = self.next_service.clone();
 
         Box::pin(async move {
+            let token = auth.obtain_token_safe().await.unwrap();
+
             let tcp_info = client
-                .handle_tcp_connection(timeout, to_appguard_tcp_connection(&req))
+                .handle_tcp_connection(timeout, to_appguard_tcp_connection(&req, token.clone()))
                 .await
                 .map_err(|e| GrcpError::new(e.message()))?
                 .tcp_info;
@@ -117,7 +128,7 @@ where
                 .handle_http_request(
                     timeout,
                     default_policy,
-                    to_appguard_http_request(&req, tcp_info.clone()),
+                    to_appguard_http_request(&req, tcp_info.clone(), token.clone()),
                 )
                 .await
                 .map_err(|e| GrcpError::new(e.message()))?;
@@ -135,7 +146,7 @@ where
                 .handle_http_response(
                     timeout,
                     default_policy,
-                    to_appguard_http_response(&resp, tcp_info),
+                    to_appguard_http_response(&resp, tcp_info, token),
                 )
                 .await
                 .map_err(|e| GrcpError::new(e.message()))?;

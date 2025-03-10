@@ -3,12 +3,13 @@ use std::net::SocketAddr;
 
 use nullnet_libappguard::{
     AppGuardHttpRequest, AppGuardHttpResponse, AppGuardTcpConnection, AppGuardTcpInfo,
+    Authentication,
 };
 use qstring::QString;
 use rocket::http::HeaderMap;
 use rocket::{Request, Response};
 
-pub(crate) fn to_appguard_tcp_connection(req: &Request) -> AppGuardTcpConnection {
+pub(crate) fn to_appguard_tcp_connection(req: &Request, token: String) -> AppGuardTcpConnection {
     let source_ip = req.client_ip().map(|ip| ip.to_string());
     let source_port = req.remote().map(|s| u32::from(s.port()));
 
@@ -17,6 +18,7 @@ pub(crate) fn to_appguard_tcp_connection(req: &Request) -> AppGuardTcpConnection
     let protocol = String::new();
 
     AppGuardTcpConnection {
+        auth: Some(Authentication { token }),
         source_ip,
         source_port,
         destination_ip: destination.map(|s| s.ip().to_string()),
@@ -28,6 +30,7 @@ pub(crate) fn to_appguard_tcp_connection(req: &Request) -> AppGuardTcpConnection
 pub(crate) fn to_appguard_http_request(
     req: &Request,
     tcp_info: Option<AppGuardTcpInfo>,
+    token: String,
 ) -> AppGuardHttpRequest {
     let headers = convert_headers(req.headers());
 
@@ -38,6 +41,7 @@ pub(crate) fn to_appguard_http_request(
     };
 
     AppGuardHttpRequest {
+        auth: Some(Authentication { token }),
         original_url: req.uri().path().to_string(),
         headers,
         method: req.method().to_string(),
@@ -50,10 +54,12 @@ pub(crate) fn to_appguard_http_request(
 pub(crate) fn to_appguard_http_response(
     res: &Response,
     tcp_info: Option<AppGuardTcpInfo>,
+    token: String,
 ) -> AppGuardHttpResponse {
     let headers = convert_headers(res.headers());
 
     AppGuardHttpResponse {
+        auth: Some(Authentication { token }),
         code: u32::from(res.status().code),
         headers,
         tcp_info,

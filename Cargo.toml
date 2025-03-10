@@ -1,6 +1,7 @@
 [workspace]
 resolver = "2"
 members = [
+    "client_authentication",
     "clients/actix",
     "clients/actix/sample",
     "clients/axum",
@@ -11,3 +12,4 @@ members = [
 
 [workspace.dependencies]
 nullnet-libappguard = { path = "../appguard-server/libappguard" }
+appguard-client-authentication = { path = "./client_authentication" }
