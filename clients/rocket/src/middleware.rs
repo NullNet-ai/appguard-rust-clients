@@ -43,7 +43,7 @@ impl AppGuardConfig {
             client: client.clone(),
             default_policy,
             timeout,
-            auth: AuthHandler::new(client),
+            auth: AuthHandler::new(client).await,
         }
     }
 }

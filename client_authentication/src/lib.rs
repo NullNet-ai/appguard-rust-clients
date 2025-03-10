@@ -2,7 +2,6 @@ mod heartbeat;
 mod login_impl;
 mod token_wrapper;
 
-use futures::executor::block_on;
 use login_impl::login_impl;
 use nullnet_libappguard::{AppGuardGrpcInterface, Authentication, DeviceStatus, SetupRequest};
 use std::sync::Arc;
@@ -20,7 +19,7 @@ pub struct AuthHandler {
 impl AuthHandler {
     #[must_use]
     #[allow(clippy::missing_panics_doc)]
-    pub fn new(client: AppGuardGrpcInterface) -> Self {
+    pub async fn new(client: AppGuardGrpcInterface) -> Self {
         let app_id = std::env::var("APP_ID").unwrap_or_default();
         let app_secret = std::env::var("APP_SECRET").unwrap_or_default();
         let mut auth = Self {
@@ -30,10 +29,13 @@ impl AuthHandler {
             token: Arc::new(Mutex::new(None)),
         };
 
-        let status = block_on(auth.fetch_status()).expect("Failed to fetch device status");
+        let status = auth
+            .fetch_status()
+            .await
+            .expect("Failed to fetch device status");
 
         if status == DeviceStatus::DsDraft {
-            block_on(auth.setup_request()).expect("Setup request failed");
+            auth.setup_request().await.expect("Setup request failed");
         } else if status == DeviceStatus::DsArchived || status == DeviceStatus::DsDeleted {
             log::warn!("Device has been archived or deleted, aborting execution ...",);
             std::process::exit(0);

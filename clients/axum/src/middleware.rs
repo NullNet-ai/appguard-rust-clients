@@ -70,7 +70,7 @@ impl<S> Layer<S> for AppGuardConfig {
             client: client.clone(),
             default_policy: config.default_policy,
             timeout: config.timeout,
-            auth: AuthHandler::new(client),
+            auth: block_on(AuthHandler::new(client)),
             next_service: Arc::new(Mutex::new(inner)),
         }
     }

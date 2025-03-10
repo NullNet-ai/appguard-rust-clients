@@ -76,7 +76,7 @@ where
                 client: client.clone(),
                 default_policy: config.default_policy,
                 timeout: config.timeout,
-                auth: AuthHandler::new(client),
+                auth: AuthHandler::new(client).await,
                 next_service: Rc::new(service),
             })
         })
