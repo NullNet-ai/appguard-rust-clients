@@ -4,5 +4,6 @@ publish = false
 edition = "2021"
 
 [dependencies]
+nullnet-liblogging = "0.2.0"
 appguard-rocket = { path = ".."}
 rocket = "0.5.1"

@@ -4,6 +4,7 @@ publish = false
 edition = "2021"
 
 [dependencies]
+nullnet-liblogging = "0.2.0"
 appguard-axum = { path = ".."}
 axum = "0.7.9"
 axum-embed = "0.1.0"

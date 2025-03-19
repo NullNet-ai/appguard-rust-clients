@@ -2,6 +2,7 @@ use appguard_axum::{AppGuardConfig, FirewallPolicy};
 use axum::http::{Response, StatusCode};
 use axum::{routing::get, Router};
 use axum_embed::{FallbackBehavior, ServeEmbed};
+use nullnet_liblogging::{Logger, LoggerConfig};
 use rust_embed::RustEmbed;
 use std::net::SocketAddr;
 
@@ -28,6 +29,9 @@ struct FormMD;
 
 #[tokio::main]
 async fn main() {
+    let logger_config = LoggerConfig::new(true, false, None, vec!["axum_sample"]);
+    Logger::init(logger_config);
+
     let appguard_config =
         AppGuardConfig::new(HOST, 50051, false, Some(1000), FirewallPolicy::Allow)
             .await

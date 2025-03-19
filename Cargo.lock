@@ -549,6 +549,7 @@ dependencies = [
  "appguard-axum",
  "axum 0.7.9",
  "axum-embed",
+ "nullnet-liblogging 0.2.0",
  "rust-embed",
  "tokio",
 ]
@@ -2583,6 +2584,7 @@ name = "rocket_sample"
 version = "0.0.0"
 dependencies = [
  "appguard-rocket",
+ "nullnet-liblogging 0.2.0",
  "rocket",
 ]
 
