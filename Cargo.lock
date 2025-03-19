@@ -295,7 +295,6 @@ dependencies = [
  "appguard-client-authentication",
  "axum 0.7.9",
  "axum-extra",
- "futures",
  "nullnet-libappguard",
  "qstring",
  "tower 0.5.2",

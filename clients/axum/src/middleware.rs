@@ -4,7 +4,6 @@ use std::sync::{Arc, Mutex};
 
 use axum::http::StatusCode;
 use axum::{body::Body, extract::Request, response::Response};
-use futures::executor::block_on;
 use std::task::{Context, Poll};
 use tower::{Layer, Service};
 
@@ -15,14 +14,13 @@ use crate::conversions::{
     to_appguard_http_request, to_appguard_http_response, to_appguard_tcp_connection,
 };
 
-#[derive(Default, Clone, Copy)]
+#[derive(Clone)]
 /// `AppGuard` client configuration.
 pub struct AppGuardConfig {
-    host: &'static str,
-    port: u16,
-    tls: bool,
+    client: AppGuardGrpcInterface,
     timeout: Option<u64>,
     default_policy: FirewallPolicy,
+    auth: AuthHandler,
 }
 
 impl AppGuardConfig {
@@ -36,20 +34,22 @@ impl AppGuardConfig {
     /// * `timeout` - Timeout for calls to the `AppGuard` server (milliseconds).
     /// * `default_policy` - Default firewall policy to apply when the `AppGuard` server times out.
     #[must_use]
-    pub fn new(
+    pub async fn new(
         host: &'static str,
         port: u16,
         tls: bool,
         timeout: Option<u64>,
         default_policy: FirewallPolicy,
-    ) -> Self {
-        AppGuardConfig {
-            host,
-            port,
-            tls,
+    ) -> Option<Self> {
+        let client = AppGuardGrpcInterface::new(host, port, tls).await.ok()?;
+        let auth = AuthHandler::new(client.clone()).await;
+
+        Some(AppGuardConfig {
+            client,
             timeout,
             default_policy,
-        }
+            auth,
+        })
     }
 }
 
@@ -59,18 +59,9 @@ impl<S> Layer<S> for AppGuardConfig {
     type Service = AppGuardMiddleware<S>;
 
     fn layer(&self, inner: S) -> Self::Service {
-        let config = self;
-        let client = block_on(AppGuardGrpcInterface::new(
-            config.host,
-            config.port,
-            config.tls,
-        ))
-        .expect("Unable to start gRPC client");
+        let config = self.to_owned();
         AppGuardMiddleware {
-            client: client.clone(),
-            default_policy: config.default_policy,
-            timeout: config.timeout,
-            auth: block_on(AuthHandler::new(client)),
+            config,
             next_service: Arc::new(Mutex::new(inner)),
         }
     }
@@ -78,10 +69,7 @@ impl<S> Layer<S> for AppGuardConfig {
 
 #[derive(Clone)]
 pub struct AppGuardMiddleware<S> {
-    client: AppGuardGrpcInterface,
-    default_policy: FirewallPolicy,
-    timeout: Option<u64>,
-    auth: AuthHandler,
+    config: AppGuardConfig,
     next_service: Arc<Mutex<S>>,
 }
 
@@ -99,10 +87,10 @@ where
     }
 
     fn call(&mut self, req: Request) -> Self::Future {
-        let mut client = self.client.clone();
-        let timeout = self.timeout;
-        let default_policy = self.default_policy;
-        let auth = self.auth.clone();
+        let mut client = self.config.client.clone();
+        let timeout = self.config.timeout;
+        let default_policy = self.config.default_policy;
+        let auth = self.config.auth.clone();
         let next_service = self.next_service.clone();
 
         Box::pin(async move {

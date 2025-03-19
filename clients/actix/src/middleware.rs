@@ -14,14 +14,13 @@ use crate::conversions::{
     to_appguard_http_request, to_appguard_http_response, to_appguard_tcp_connection,
 };
 
-#[derive(Default, Clone, Copy)]
+#[derive(Clone)]
 /// `AppGuard` client configuration.
 pub struct AppGuardConfig {
-    host: &'static str,
-    port: u16,
-    tls: bool,
+    client: AppGuardGrpcInterface,
     timeout: Option<u64>,
     default_policy: FirewallPolicy,
+    auth: AuthHandler,
 }
 
 impl AppGuardConfig {
@@ -35,20 +34,22 @@ impl AppGuardConfig {
     /// * `timeout` - Timeout for calls to the `AppGuard` server (milliseconds).
     /// * `default_policy` - Default firewall policy to apply when the `AppGuard` server times out.
     #[must_use]
-    pub fn new(
+    pub async fn new(
         host: &'static str,
         port: u16,
         tls: bool,
         timeout: Option<u64>,
         default_policy: FirewallPolicy,
-    ) -> Self {
-        AppGuardConfig {
-            host,
-            port,
-            tls,
+    ) -> Option<Self> {
+        let client = AppGuardGrpcInterface::new(host, port, tls).await.ok()?;
+        let auth = AuthHandler::new(client.clone()).await;
+
+        Some(AppGuardConfig {
+            client,
             timeout,
             default_policy,
-        }
+            auth,
+        })
     }
 }
 
@@ -68,15 +69,8 @@ where
     fn new_transform(&self, service: S) -> Self::Future {
         let config = self.to_owned();
         Box::pin(async move {
-            let client = AppGuardGrpcInterface::new(config.host, config.port, config.tls)
-                .await
-                .map_err(|_| ())?;
-
             Ok(AppGuardMiddleware {
-                client: client.clone(),
-                default_policy: config.default_policy,
-                timeout: config.timeout,
-                auth: AuthHandler::new(client).await,
+                config,
                 next_service: Rc::new(service),
             })
         })
@@ -84,10 +78,7 @@ where
 }
 
 pub struct AppGuardMiddleware<S> {
-    client: AppGuardGrpcInterface,
-    default_policy: FirewallPolicy,
-    timeout: Option<u64>,
-    auth: AuthHandler,
+    config: AppGuardConfig,
     next_service: Rc<S>,
 }
 
@@ -104,10 +95,10 @@ where
     forward_ready!(next_service);
 
     fn call(&self, req: ServiceRequest) -> Self::Future {
-        let mut client = self.client.clone();
-        let timeout = self.timeout;
-        let default_policy = self.default_policy;
-        let auth = self.auth.clone();
+        let mut client = self.config.client.clone();
+        let timeout = self.config.timeout;
+        let default_policy = self.config.default_policy;
+        let auth = self.config.auth.clone();
         let next_service = self.next_service.clone();
 
         Box::pin(async move {

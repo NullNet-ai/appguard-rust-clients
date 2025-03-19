@@ -35,16 +35,15 @@ impl AppGuardConfig {
         tls: bool,
         timeout: Option<u64>,
         default_policy: FirewallPolicy,
-    ) -> Self {
-        let client = AppGuardGrpcInterface::new(host, port, tls)
-            .await
-            .expect("Unable to start gRPC client");
-        AppGuardConfig {
-            client: client.clone(),
+    ) -> Option<Self> {
+        let client = AppGuardGrpcInterface::new(host, port, tls).await.ok()?;
+        let auth = AuthHandler::new(client.clone()).await;
+        Some(AppGuardConfig {
+            client,
             default_policy,
             timeout,
-            auth: AuthHandler::new(client).await,
-        }
+            auth,
+        })
     }
 }
 
