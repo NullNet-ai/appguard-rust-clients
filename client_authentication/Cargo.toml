@@ -5,6 +5,6 @@ edition = "2024"
 
 [dependencies]
 nullnet-libappguard.workspace = true
-nullnet-libtoken = "0.1.1"
+nullnet-libtoken = "0.2.0"
 tokio = "1.43.0"
 log = "0.4.26"

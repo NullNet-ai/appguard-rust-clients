@@ -1,18 +1,17 @@
 mod heartbeat;
 mod login_impl;
-mod token_wrapper;
 
 use login_impl::login_impl;
 use nullnet_libappguard::{AppGuardGrpcInterface, Authentication, DeviceStatus, SetupRequest};
+use nullnet_libtoken::Token;
 use std::sync::Arc;
-use token_wrapper::TokenWrapper;
 use tokio::sync::Mutex;
 
 #[derive(Clone)]
 pub struct AuthHandler {
     app_id: String,
     app_secret: String,
-    token: Arc<Mutex<Option<TokenWrapper>>>,
+    token: Arc<Mutex<Option<Token>>>,
     client: AppGuardGrpcInterface,
 }
 
@@ -52,7 +51,7 @@ impl AuthHandler {
     pub async fn obtain_token_safe(&self) -> Result<String, String> {
         let mut token = self.token.lock().await;
 
-        if token.as_ref().is_none_or(TokenWrapper::is_expired) {
+        if token.as_ref().is_none_or(Token::is_expired) {
             let new_token = login_impl(
                 self.client.clone(),
                 self.app_id.clone(),
