@@ -58,7 +58,7 @@ impl Fairing for AppGuardConfig {
 
     async fn on_request(&self, req: &mut Request<'_>, _data: &mut Data<'_>) {
         let mut client = self.client.clone();
-        let token = self.auth.obtain_token_safe().await.unwrap();
+        let token = self.auth.get_token().await;
 
         let AppGuardTcpResponse { tcp_info } = client
             .handle_tcp_connection(self.timeout, to_appguard_tcp_connection(req, token.clone()))
@@ -82,7 +82,7 @@ impl Fairing for AppGuardConfig {
 
     async fn on_response<'r>(&self, req: &'r Request<'_>, resp: &mut Response<'r>) {
         let mut client = self.client.clone();
-        let token = self.auth.obtain_token_safe().await.unwrap();
+        let token = self.auth.get_token().await;
 
         let tcp_info = req.local_cache(|| None);
 

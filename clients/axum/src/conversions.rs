@@ -6,7 +6,6 @@ use std::net::SocketAddr;
 
 use nullnet_libappguard::{
     AppGuardHttpRequest, AppGuardHttpResponse, AppGuardTcpConnection, AppGuardTcpInfo,
-    Authentication,
 };
 
 pub(crate) fn to_appguard_tcp_connection(req: &Request, token: String) -> AppGuardTcpConnection {
@@ -24,7 +23,7 @@ pub(crate) fn to_appguard_tcp_connection(req: &Request, token: String) -> AppGua
         .unwrap_or_default();
 
     AppGuardTcpConnection {
-        auth: Some(Authentication { token }),
+        token,
         source_ip: source.map(|s| s.ip().to_string()),
         source_port: source.map(|s| u32::from(s.port())),
         destination_ip: destination.map(|s| s.ip().to_string()),
@@ -45,7 +44,7 @@ pub(crate) fn to_appguard_http_request(
         .collect();
 
     AppGuardHttpRequest {
-        auth: Some(Authentication { token }),
+        token,
         original_url: req.uri().path().to_string(),
         headers,
         method: req.method().to_string(),
@@ -63,7 +62,7 @@ pub(crate) fn to_appguard_http_response<B>(
     let headers = convert_headers(res.headers());
 
     AppGuardHttpResponse {
-        auth: Some(Authentication { token }),
+        token,
         code: u32::from(res.status().as_u16()),
         headers,
         tcp_info,

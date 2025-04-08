@@ -3,7 +3,6 @@ use std::net::SocketAddr;
 
 use nullnet_libappguard::{
     AppGuardHttpRequest, AppGuardHttpResponse, AppGuardTcpConnection, AppGuardTcpInfo,
-    Authentication,
 };
 use qstring::QString;
 use rocket::http::HeaderMap;
@@ -18,7 +17,7 @@ pub(crate) fn to_appguard_tcp_connection(req: &Request, token: String) -> AppGua
     let protocol = String::new();
 
     AppGuardTcpConnection {
-        auth: Some(Authentication { token }),
+        token,
         source_ip,
         source_port,
         destination_ip: destination.map(|s| s.ip().to_string()),
@@ -41,7 +40,7 @@ pub(crate) fn to_appguard_http_request(
     };
 
     AppGuardHttpRequest {
-        auth: Some(Authentication { token }),
+        token,
         original_url: req.uri().path().to_string(),
         headers,
         method: req.method().to_string(),
@@ -59,7 +58,7 @@ pub(crate) fn to_appguard_http_response(
     let headers = convert_headers(res.headers());
 
     AppGuardHttpResponse {
-        auth: Some(Authentication { token }),
+        token,
         code: u32::from(res.status().code),
         headers,
         tcp_info,

@@ -94,7 +94,7 @@ where
         let next_service = self.next_service.clone();
 
         Box::pin(async move {
-            let token = auth.obtain_token_safe().await.unwrap();
+            let token = auth.get_token().await;
 
             let Ok(AppGuardTcpResponse { tcp_info }) = client
                 .handle_tcp_connection(timeout, to_appguard_tcp_connection(&req, token.clone()))
