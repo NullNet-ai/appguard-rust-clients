@@ -4,11 +4,11 @@ use qstring::QString;
 use std::collections::HashMap;
 use std::net::SocketAddr;
 
-use appguard_server::{
+use nullnet_libappguard::{
     AppGuardHttpRequest, AppGuardHttpResponse, AppGuardTcpConnection, AppGuardTcpInfo,
 };
 
-pub(crate) fn to_appguard_tcp_connection(req: &Request) -> AppGuardTcpConnection {
+pub(crate) fn to_appguard_tcp_connection(req: &Request, token: String) -> AppGuardTcpConnection {
     let source = req
         .extensions()
         .get::<axum::extract::ConnectInfo<SocketAddr>>()
@@ -23,6 +23,7 @@ pub(crate) fn to_appguard_tcp_connection(req: &Request) -> AppGuardTcpConnection
         .unwrap_or_default();
 
     AppGuardTcpConnection {
+        token,
         source_ip: source.map(|s| s.ip().to_string()),
         source_port: source.map(|s| u32::from(s.port())),
         destination_ip: destination.map(|s| s.ip().to_string()),
@@ -34,6 +35,7 @@ pub(crate) fn to_appguard_tcp_connection(req: &Request) -> AppGuardTcpConnection
 pub(crate) fn to_appguard_http_request(
     req: &Request,
     tcp_info: Option<AppGuardTcpInfo>,
+    token: String,
 ) -> AppGuardHttpRequest {
     let headers = convert_headers(req.headers());
 
@@ -42,6 +44,7 @@ pub(crate) fn to_appguard_http_request(
         .collect();
 
     AppGuardHttpRequest {
+        token,
         original_url: req.uri().path().to_string(),
         headers,
         method: req.method().to_string(),
@@ -54,10 +57,12 @@ pub(crate) fn to_appguard_http_request(
 pub(crate) fn to_appguard_http_response<B>(
     res: &Response<B>,
     tcp_info: Option<AppGuardTcpInfo>,
+    token: String,
 ) -> AppGuardHttpResponse {
     let headers = convert_headers(res.headers());
 
     AppGuardHttpResponse {
+        token,
         code: u32::from(res.status().as_u16()),
         headers,
         tcp_info,

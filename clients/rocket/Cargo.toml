@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-appguard-server.workspace = true
+nullnet-libappguard.workspace = true
+appguard-client-authentication.workspace = true
 rocket = "0.5.1"
 qstring = "0.7.2"

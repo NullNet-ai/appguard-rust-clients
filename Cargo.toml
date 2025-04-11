@@ -1,6 +1,7 @@
 [workspace]
 resolver = "2"
 members = [
+    "client_authentication",
     "clients/actix",
     "clients/actix/sample",
     "clients/axum",
@@ -10,4 +11,5 @@ members = [
 ]
 
 [workspace.dependencies]
-appguard-server = { path = "../appguard-server", features = ["grpc-lib-only"] }
+nullnet-libappguard = "0.1.1"
+appguard-client-authentication = { path = "./client_authentication" }

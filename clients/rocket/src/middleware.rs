@@ -2,7 +2,8 @@ use rocket::fairing::{Fairing, Info, Kind};
 use rocket::http::Status;
 use rocket::{Data, Request, Response};
 
-use appguard_server::{AppGuardGrpcInterface, AppGuardTcpResponse, FirewallPolicy};
+use appguard_client_authentication::AuthHandler;
+use nullnet_libappguard::{AppGuardGrpcInterface, AppGuardTcpResponse, FirewallPolicy};
 
 use crate::conversions::{
     to_appguard_http_request, to_appguard_http_response, to_appguard_tcp_connection,
@@ -13,6 +14,7 @@ pub struct AppGuardConfig {
     client: AppGuardGrpcInterface,
     default_policy: FirewallPolicy,
     timeout: Option<u64>,
+    auth: AuthHandler,
 }
 
 impl AppGuardConfig {
@@ -33,15 +35,15 @@ impl AppGuardConfig {
         tls: bool,
         timeout: Option<u64>,
         default_policy: FirewallPolicy,
-    ) -> Self {
-        let client = AppGuardGrpcInterface::new(host, port, tls)
-            .await
-            .expect("Unable to start gRPC client");
-        AppGuardConfig {
+    ) -> Option<Self> {
+        let client = AppGuardGrpcInterface::new(host, port, tls).await.ok()?;
+        let auth = AuthHandler::new(client.clone()).await;
+        Some(AppGuardConfig {
             client,
             default_policy,
             timeout,
-        }
+            auth,
+        })
     }
 }
 
@@ -56,9 +58,10 @@ impl Fairing for AppGuardConfig {
 
     async fn on_request(&self, req: &mut Request<'_>, _data: &mut Data<'_>) {
         let mut client = self.client.clone();
+        let token = self.auth.get_token().await;
 
         let AppGuardTcpResponse { tcp_info } = client
-            .handle_tcp_connection(self.timeout, to_appguard_tcp_connection(req))
+            .handle_tcp_connection(self.timeout, to_appguard_tcp_connection(req, token.clone()))
             .await
             .expect("Internal server error");
 
@@ -68,7 +71,7 @@ impl Fairing for AppGuardConfig {
             .handle_http_request(
                 self.timeout,
                 self.default_policy,
-                to_appguard_http_request(req, tcp_info),
+                to_appguard_http_request(req, tcp_info, token),
             )
             .await
             .expect("Internal server error");
@@ -79,6 +82,7 @@ impl Fairing for AppGuardConfig {
 
     async fn on_response<'r>(&self, req: &'r Request<'_>, resp: &mut Response<'r>) {
         let mut client = self.client.clone();
+        let token = self.auth.get_token().await;
 
         let tcp_info = req.local_cache(|| None);
 
@@ -86,7 +90,7 @@ impl Fairing for AppGuardConfig {
             .handle_http_response(
                 self.timeout,
                 self.default_policy,
-                to_appguard_http_response(resp, tcp_info.to_owned()),
+                to_appguard_http_response(resp, tcp_info.to_owned(), token),
             )
             .await
         else {
