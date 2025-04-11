@@ -1849,6 +1849,8 @@ dependencies = [
 [[package]]
 name = "nullnet-libappguard"
 version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ddc1b1e25e1dbfe459e31bf2d48275af239a21091dd1f1cb40d100096b06187d"
 dependencies = [
  "prost",
  "serde",
