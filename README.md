@@ -1,6 +1,6 @@
-# AppGuard-rust-clients
+# appguard-rust-clients
 
-This repository contains the code of the Rust-based clients supported by AppGuard.
+This repository contains the code of the Rust-based clients supported by [AppGuard](https://github.com/NullNet-ai/appguard-server).
 
 ***
 
