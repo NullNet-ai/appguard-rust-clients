@@ -31,7 +31,6 @@ impl AppGuardConfig {
     /// * `default_policy` - Default firewall policy to apply when the `AppGuard` server times out.
     /// * `firewall` - Firewall expressions (infix notation).
     #[must_use]
-    #[allow(clippy::missing_panics_doc)]
     pub async fn new(
         host: &'static str,
         port: u16,
