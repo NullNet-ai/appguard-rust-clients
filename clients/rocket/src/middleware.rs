@@ -3,7 +3,9 @@ use rocket::http::Status;
 use rocket::{Data, Request, Response};
 
 use appguard_client_authentication::AuthHandler;
-use nullnet_libappguard::{AppGuardGrpcInterface, AppGuardTcpResponse, FirewallPolicy};
+use nullnet_libappguard::{
+    AppGuardFirewall, AppGuardGrpcInterface, AppGuardTcpResponse, FirewallPolicy,
+};
 
 use crate::conversions::{
     to_appguard_http_request, to_appguard_http_response, to_appguard_tcp_connection,
@@ -12,8 +14,8 @@ use crate::conversions::{
 /// `AppGuard` client configuration.
 pub struct AppGuardConfig {
     client: AppGuardGrpcInterface,
-    default_policy: FirewallPolicy,
     timeout: Option<u64>,
+    default_policy: FirewallPolicy,
     auth: AuthHandler,
 }
 
@@ -27,6 +29,7 @@ impl AppGuardConfig {
     /// * `tls` - Whether traffic to the `AppGuard` server should be secured with TLS.
     /// * `timeout` - Timeout for calls to the `AppGuard` server (milliseconds).
     /// * `default_policy` - Default firewall policy to apply when the `AppGuard` server times out.
+    /// * `firewall` - Firewall expressions (infix notation).
     #[must_use]
     #[allow(clippy::missing_panics_doc)]
     pub async fn new(
@@ -35,13 +38,21 @@ impl AppGuardConfig {
         tls: bool,
         timeout: Option<u64>,
         default_policy: FirewallPolicy,
+        firewall: String,
     ) -> Option<Self> {
-        let client = AppGuardGrpcInterface::new(host, port, tls).await.ok()?;
+        let mut client = AppGuardGrpcInterface::new(host, port, tls).await.ok()?;
         let auth = AuthHandler::new(client.clone()).await;
+
+        let token = auth.get_token().await;
+        client
+            .update_firewall(AppGuardFirewall { token, firewall })
+            .await
+            .ok()?;
+
         Some(AppGuardConfig {
             client,
-            default_policy,
             timeout,
+            default_policy,
             auth,
         })
     }

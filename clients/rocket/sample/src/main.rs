@@ -28,10 +28,16 @@ async fn rocket() -> _ {
         .merge(("port", addr.port()))
         .merge(("log_level", "critical"));
 
-    let appguard_config =
-        AppGuardConfig::new(HOST, 50051, false, Some(1000), FirewallPolicy::Allow)
-            .await
-            .unwrap();
+    let appguard_config = AppGuardConfig::new(
+        HOST,
+        50051,
+        false,
+        Some(1000),
+        FirewallPolicy::Allow,
+        "[]".to_string(),
+    )
+    .await
+    .unwrap();
 
     rocket::custom(rocket_config)
         .attach(appguard_config)

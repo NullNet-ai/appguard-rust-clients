@@ -33,6 +33,7 @@ impl AppGuardConfig {
     /// * `tls` - Whether traffic to the `AppGuard` server should be secured with TLS.
     /// * `timeout` - Timeout for calls to the `AppGuard` server (milliseconds).
     /// * `default_policy` - Default firewall policy to apply when the `AppGuard` server times out.
+    /// * `firewall` - Firewall expressions (infix notation).
     #[must_use]
     pub async fn new(
         host: &'static str,
