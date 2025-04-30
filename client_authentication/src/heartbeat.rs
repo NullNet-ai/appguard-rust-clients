@@ -8,12 +8,7 @@ pub async fn routine(auth_handler: AuthHandler) {
     loop {
         let mut client = auth_handler.client.clone();
         let Ok(mut heartbeat_stream) = client
-            .heartbeat(
-                auth_handler.app_id.clone(),
-                auth_handler.app_secret.clone(),
-                String::new(),
-                String::new(),
-            )
+            .heartbeat(auth_handler.app_id.clone(), auth_handler.app_secret.clone())
             .await
         else {
             log::warn!("Failed to send heartbeat to the server. Retrying in 10 seconds...");
@@ -32,7 +27,7 @@ pub async fn routine(auth_handler: AuthHandler) {
 
 fn handle_hb_response(response: &HeartbeatResponse) {
     match DeviceStatus::try_from(response.status) {
-        Ok(DeviceStatus::DsArchived | DeviceStatus::DsDeleted) => {
+        Ok(DeviceStatus::Archived | DeviceStatus::Deleted) => {
             log::warn!("Device has been archived or deleted, aborting execution ...",);
             std::process::exit(0);
         }
