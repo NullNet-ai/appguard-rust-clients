@@ -22,10 +22,16 @@ async fn main() -> std::io::Result<()> {
     let logger_config = LoggerConfig::new(true, false, None, vec!["actix_sample"]);
     Logger::init(logger_config);
 
-    let appguard_config =
-        AppGuardConfig::new(HOST, 50051, false, Some(1000), FirewallPolicy::Allow)
-            .await
-            .unwrap();
+    let appguard_config = AppGuardConfig::new(
+        HOST,
+        50051,
+        false,
+        Some(1000),
+        FirewallPolicy::Allow,
+        "[]".to_string(),
+    )
+    .await
+    .unwrap();
 
     HttpServer::new(move || {
         App::new()
