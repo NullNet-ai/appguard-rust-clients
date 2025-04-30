@@ -8,7 +8,9 @@ use std::task::{Context, Poll};
 use tower::{Layer, Service};
 
 use appguard_client_authentication::AuthHandler;
-use nullnet_libappguard::{AppGuardGrpcInterface, AppGuardTcpResponse, FirewallPolicy};
+use nullnet_libappguard::{
+    AppGuardFirewall, AppGuardGrpcInterface, AppGuardTcpResponse, FirewallPolicy,
+};
 
 use crate::conversions::{
     to_appguard_http_request, to_appguard_http_response, to_appguard_tcp_connection,
@@ -40,9 +42,16 @@ impl AppGuardConfig {
         tls: bool,
         timeout: Option<u64>,
         default_policy: FirewallPolicy,
+        firewall: String,
     ) -> Option<Self> {
-        let client = AppGuardGrpcInterface::new(host, port, tls).await.ok()?;
+        let mut client = AppGuardGrpcInterface::new(host, port, tls).await.ok()?;
         let auth = AuthHandler::new(client.clone()).await;
+
+        let token = auth.get_token().await;
+        client
+            .update_firewall(AppGuardFirewall { token, firewall })
+            .await
+            .ok()?;
 
         Some(AppGuardConfig {
             client,

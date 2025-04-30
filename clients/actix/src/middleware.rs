@@ -47,7 +47,7 @@ impl AppGuardConfig {
 
         let token = auth.get_token().await;
         client
-            .update_firewall(AppGuardFirewall { firewall, token })
+            .update_firewall(AppGuardFirewall { token, firewall })
             .await
             .ok()?;
 

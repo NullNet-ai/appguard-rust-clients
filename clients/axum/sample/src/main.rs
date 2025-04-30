@@ -32,10 +32,16 @@ async fn main() {
     let logger_config = LoggerConfig::new(true, false, None, vec!["axum_sample"]);
     Logger::init(logger_config);
 
-    let appguard_config =
-        AppGuardConfig::new(HOST, 50051, false, Some(1000), FirewallPolicy::Allow)
-            .await
-            .unwrap();
+    let appguard_config = AppGuardConfig::new(
+        HOST,
+        50051,
+        false,
+        Some(1000),
+        FirewallPolicy::Allow,
+        "[]".to_string(),
+    )
+    .await
+    .unwrap();
 
     let listener = tokio::net::TcpListener::bind(format!("{HOST}:3002"))
         .await
