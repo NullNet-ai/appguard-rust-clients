@@ -3,6 +3,10 @@ name = "appguard-client-authentication"
 version = "0.1.0"
 edition = "2024"
 license = "AGPL-3.0-only"
+description = "Library for AppGuard clients authentication"
+repository = "https://github.com/NullNet-ai/appguard-rust-clients"
+keywords = ["firewall", "network", "application", "centralized", "monitor"]
+categories = ["network-programming"]
 
 [dependencies]
 nullnet-libappguard.workspace = true

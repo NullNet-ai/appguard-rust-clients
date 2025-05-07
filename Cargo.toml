@@ -12,4 +12,4 @@ members = [
 
 [workspace.dependencies]
 nullnet-libappguard = "0.1.5"
-appguard-client-authentication = { path = "./client_authentication" }
+appguard-client-authentication = "0.1.0"
