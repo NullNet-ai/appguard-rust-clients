@@ -2,6 +2,7 @@
 name = "appguard-axum"
 version = "0.1.0"
 edition = "2021"
+license = "AGPL-3.0-only"
 
 [dependencies]
 nullnet-libappguard.workspace = true

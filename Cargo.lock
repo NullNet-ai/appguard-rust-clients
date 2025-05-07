@@ -283,7 +283,7 @@ name = "appguard-actix"
 version = "0.1.0"
 dependencies = [
  "actix-web",
- "nullnet-client-authentication",
+ "appguard-client-authentication",
  "nullnet-libappguard",
  "qstring",
 ]
@@ -292,19 +292,30 @@ dependencies = [
 name = "appguard-axum"
 version = "0.1.0"
 dependencies = [
+ "appguard-client-authentication",
  "axum 0.7.9",
  "axum-extra",
- "nullnet-client-authentication",
  "nullnet-libappguard",
  "qstring",
  "tower 0.5.2",
 ]
 
 [[package]]
+name = "appguard-client-authentication"
+version = "0.1.0"
+dependencies = [
+ "futures-util",
+ "log",
+ "nullnet-libappguard",
+ "nullnet-libtoken 0.2.0",
+ "tokio",
+]
+
+[[package]]
 name = "appguard-rocket"
 version = "0.1.0"
 dependencies = [
- "nullnet-client-authentication",
+ "appguard-client-authentication",
  "nullnet-libappguard",
  "qstring",
  "rocket",
@@ -1836,21 +1847,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "nullnet-client-authentication"
-version = "0.1.0"
-dependencies = [
- "futures-util",
- "log",
- "nullnet-libappguard",
- "nullnet-libwallguard",
- "tokio",
-]
-
-[[package]]
 name = "nullnet-libappguard"
-version = "0.1.4"
+version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2aaffb4e3def59797a372d0ca0f3680232b90f2fb75d98d9c57db073d0598705"
+checksum = "74e2a6a7b2f1e0dbabc77fe1c92afaf5d7d3ff68bfd8bf9b556b58c5e58f7142"
 dependencies = [
  "prost",
  "serde",
@@ -1925,7 +1925,7 @@ dependencies = [
  "chrono",
  "log",
  "nullnet-liberror",
- "nullnet-libtoken",
+ "nullnet-libtoken 0.1.1",
  "nullnet-wallguard-server",
  "once_cell",
  "serde",
@@ -1946,16 +1946,14 @@ dependencies = [
 ]
 
 [[package]]
-name = "nullnet-libwallguard"
-version = "0.1.4"
+name = "nullnet-libtoken"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5428911eea00fe0983bdbf90be5a82606d39a12a6dab5ec27d99d8bda8177e16"
+checksum = "db8ca1cee965f58866ee48bb82d8933a94fb7170ebd0c5428741ed13c5f6812c"
 dependencies = [
- "log",
- "prost",
+ "base64",
  "serde",
- "tokio",
- "tonic 0.12.3",
+ "serde_json",
 ]
 
 [[package]]
@@ -1976,7 +1974,7 @@ dependencies = [
  "nullnet-liberror",
  "nullnet-libfireparse",
  "nullnet-liblogging 0.1.2",
- "nullnet-libtoken",
+ "nullnet-libtoken 0.1.1",
  "once_cell",
  "prost",
  "serde",
