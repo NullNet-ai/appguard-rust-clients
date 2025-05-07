@@ -3,6 +3,10 @@ name = "appguard-rocket"
 version = "0.1.0"
 edition = "2021"
 license = "AGPL-3.0-only"
+description = "AppGuard client for Rocket"
+repository = "https://github.com/NullNet-ai/appguard-rust-clients"
+keywords = ["firewall", "network", "application", "centralized", "monitor"]
+categories = ["network-programming"]
 
 [dependencies]
 nullnet-libappguard.workspace = true
