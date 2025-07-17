@@ -1,5 +1,5 @@
-use nullnet_libappguard::appguard_commands::FirewallDefaults;
 use crate::{context::Context, control_channel::command::ExecutableCommand};
+use nullnet_libappguard::appguard_commands::FirewallDefaults;
 
 pub struct SetFirewallDefaultsCommand {
     context: Context,

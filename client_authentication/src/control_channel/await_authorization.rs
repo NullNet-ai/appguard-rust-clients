@@ -1,11 +1,10 @@
-use nullnet_liberror::{location, Error, ErrorHandler, Location};
+use crate::control_channel::{InboundStream, OutboundStream};
+use crate::storage::{Secret, Storage};
 use nullnet_libappguard::appguard_commands::{
-    client_message, server_message, AuthorizationRequest, ClientMessage,
+    AuthorizationRequest, ClientMessage, client_message, server_message,
 };
-
-use crate::{
-    control_channel::{InboundStream, OutboundStream},
-};
+use nullnet_liberror::{Error, ErrorHandler, Location, location};
+use smbioslib::{SMBiosSystemInformation, table_load_from_device};
 
 pub enum Verdict {
     Approved,
@@ -15,15 +14,22 @@ pub enum Verdict {
 pub async fn await_authorization(
     inbound: InboundStream,
     outbound: OutboundStream,
+    installation_code: impl Into<String>,
 ) -> Result<Verdict, Error> {
+    let uuid = table_load_from_device()
+        .handle_err(location!())?
+        .find_map(|value: SMBiosSystemInformation| value.uuid())
+        .map(|uuid| uuid.to_string())
+        .ok_or("Failed to retrieve device UUID")
+        .handle_err(location!())?;
     let message = ClientMessage {
         message: Some(client_message::Message::AuthorizationRequest(
             AuthorizationRequest {
-                uuid: client_data.uuid,
-                org_id: "".to_string(),
-                category: client_data.category,
-                model: "".to_string(),
-                target_os: client_data.target_os.to_string(),
+                uuid,
+                code: installation_code.into(),
+                category: String::from("AppGuard Client"),
+                r#type: "".to_string(),
+                target_os: "".to_string(),
             },
         )),
     };

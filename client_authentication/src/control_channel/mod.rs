@@ -1,16 +1,17 @@
 use crate::context::Context;
 use crate::control_channel::command::ExecutableCommand;
-use crate::control_channel::commands::{HeartbeatCommand, SetFirewallDefaultsCommand, UpdateTokenCommand};
+use crate::control_channel::commands::{
+    HeartbeatCommand, SetFirewallDefaultsCommand, UpdateTokenCommand,
+};
 use crate::control_channel::post_startup::post_startup;
 use await_authorization::await_authorization;
-use nullnet_liberror::{location, Error, ErrorHandler, Location};
+use nullnet_libappguard::Streaming;
+use nullnet_libappguard::appguard_commands::server_message::Message;
+use nullnet_libappguard::appguard_commands::{ClientMessage, ServerMessage, server_message};
+use nullnet_liberror::{Error, ErrorHandler, Location, location};
 use send_authenticate::send_authenticate;
 use std::sync::Arc;
-use nullnet_libappguard::appguard_commands::{server_message, ClientMessage, ServerMessage};
-use nullnet_libappguard::appguard_commands::server_message::Message;
-use nullnet_libappguard::appguard_commands::server_message::Message::SetFirewallDefaults;
-use nullnet_libappguard::Streaming;
-use tokio::sync::{broadcast, mpsc, Mutex};
+use tokio::sync::{Mutex, broadcast, mpsc};
 
 mod await_authorization;
 mod command;
@@ -52,24 +53,22 @@ async fn stream_wrapper(
 ) {
     tokio::select! {
         _ = terminate.recv() => {}
-        _ = control_stream(context.clone()) => { }
+        _ = control_stream(context.clone(), &installation_code) => { }
     };
 }
 
-async fn control_stream(context: Context) -> Result<(), Error> {
+async fn control_stream(context: Context,  installation_code: &str) -> Result<(), Error> {
     let (outbound, receiver) = mpsc::channel(64);
-    let inbound = context.server.control_channel(receiver).await.handle_err(location!())?;
+    let inbound = context
+        .server
+        .control_channel(receiver)
+        .await
+        .handle_err(location!())?;
 
     let inbound = Arc::new(Mutex::new(inbound));
     let outbound = Arc::new(Mutex::new(outbound));
 
-    match await_authorization(
-        inbound.clone(),
-        outbound.clone(),
-        context.client_data.clone(),
-    )
-    .await?
-    {
+    match await_authorization(inbound.clone(), outbound.clone(), installation_code).await? {
         await_authorization::Verdict::Approved => {}
         await_authorization::Verdict::Rejected => {
             Err("Auhtorization has been rejected").handle_err(location!())?;
@@ -123,7 +122,10 @@ async fn control_stream(context: Context) -> Result<(), Error> {
                 let cmd = SetFirewallDefaultsCommand::new(context.clone(), defaults);
 
                 if let Err(err) = cmd.execute().await {
-                    log::error!("SetFirewallDefaultsCommand execution failed: {}", err.to_str());
+                    log::error!(
+                        "SetFirewallDefaultsCommand execution failed: {}",
+                        err.to_str()
+                    );
                 }
             }
         }

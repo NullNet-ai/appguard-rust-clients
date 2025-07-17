@@ -1,8 +1,7 @@
 use crate::control_channel::OutboundStream;
-use nullnet_liberror::{location, Error, ErrorHandler, Location};
-use nullnet_libappguard::appguard_commands::{
-    client_message, Authentication, ClientMessage,
-};
+use crate::storage::{Secret, Storage};
+use nullnet_libappguard::appguard_commands::{Authentication, ClientMessage, client_message};
+use nullnet_liberror::{Error, ErrorHandler, Location, location};
 
 pub async fn send_authenticate(outbound: OutboundStream) -> Result<(), Error> {
     let app_id = Storage::get_value(Secret::AppId)
