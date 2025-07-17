@@ -283,7 +283,7 @@ name = "appguard-actix"
 version = "0.1.0"
 dependencies = [
  "actix-web",
- "appguard-client-authentication 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "appguard-client-authentication",
  "nullnet-libappguard",
  "qstring",
 ]
@@ -292,7 +292,7 @@ dependencies = [
 name = "appguard-axum"
 version = "0.1.0"
 dependencies = [
- "appguard-client-authentication 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "appguard-client-authentication",
  "axum 0.7.9",
  "axum-extra",
  "nullnet-libappguard",
@@ -307,18 +307,7 @@ dependencies = [
  "futures-util",
  "log",
  "nullnet-libappguard",
- "tokio",
-]
-
-[[package]]
-name = "appguard-client-authentication"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "215f5256eda99b9e2ced312a2c0ec5b56efab22df3b7b6f715d9b9d52aa7da0a"
-dependencies = [
- "futures-util",
- "log",
- "nullnet-libappguard",
+ "nullnet-liberror",
  "tokio",
 ]
 
@@ -326,7 +315,7 @@ dependencies = [
 name = "appguard-rocket"
 version = "0.1.0"
 dependencies = [
- "appguard-client-authentication 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "appguard-client-authentication",
  "nullnet-libappguard",
  "qstring",
  "rocket",
@@ -1615,6 +1604,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c8fae54786f62fb2918dcfae3d568594e50eb9b5c25bf04371af6fe7516452fb"
 
 [[package]]
+name = "io-uring"
+version = "0.7.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b86e202f00093dcba4275d4636b93ef9dd75d025ae560d2521b45ea28ab49013"
+dependencies = [
+ "bitflags",
+ "cfg-if",
+ "libc",
+]
+
+[[package]]
 name = "ipnetwork"
 version = "0.20.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1859,9 +1859,9 @@ dependencies = [
 
 [[package]]
 name = "nullnet-libappguard"
-version = "0.1.5"
+version = "0.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "74e2a6a7b2f1e0dbabc77fe1c92afaf5d7d3ff68bfd8bf9b556b58c5e58f7142"
+checksum = "1751d4106aea66fd9ce5a39c67392d75bd06d2a4455162b7ca5a910e2c4701c3"
 dependencies = [
  "prost",
  "serde",
@@ -3073,17 +3073,19 @@ dependencies = [
 
 [[package]]
 name = "tokio"
-version = "1.44.2"
+version = "1.46.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e6b88822cbe49de4185e3a4cbf8321dd487cf5fe0c5c65695fef6346371e9c48"
+checksum = "0cc3a2344dafbe23a245241fe8b09735b521110d30fcefbbd5feb1797ca35d17"
 dependencies = [
  "backtrace",
  "bytes",
+ "io-uring",
  "libc",
  "mio",
  "parking_lot",
  "pin-project-lite",
  "signal-hook-registry",
+ "slab",
  "socket2",
  "tokio-macros",
  "windows-sys 0.52.0",

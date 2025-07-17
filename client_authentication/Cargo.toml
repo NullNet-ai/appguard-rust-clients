@@ -10,6 +10,7 @@ categories = ["network-programming"]
 
 [dependencies]
 nullnet-libappguard.workspace = true
+nullnet-liberror = "0.1.1"
 tokio = "1.43.0"
 log = "0.4.26"
 futures-util = "0.3.31"

@@ -1,4 +1,7 @@
 mod heartbeat;
+mod control_channel;
+mod context;
+mod token_provider;
 
 use nullnet_libappguard::AppGuardGrpcInterface;
 use std::sync::Arc;
