@@ -4,13 +4,13 @@ use std::sync::{Arc, Mutex};
 
 use axum::http::StatusCode;
 use axum::{body::Body, extract::Request, response::Response};
-use std::task::{Context, Poll};
+use nullnet_libappguard::appguard::AppGuardTcpResponse;
+use nullnet_libappguard::appguard_commands::FirewallPolicy;
+use nullnet_libappguard::AppGuardGrpcInterface;
+use std::task::Poll;
 use tower::{Layer, Service};
 
-use appguard_client_authentication::AuthHandler;
-use nullnet_libappguard::{
-    AppGuardFirewall, AppGuardGrpcInterface, AppGuardTcpResponse, FirewallPolicy,
-};
+use appguard_client_authentication::Context;
 
 use crate::conversions::{
     to_appguard_http_request, to_appguard_http_response, to_appguard_tcp_connection,
@@ -22,7 +22,7 @@ pub struct AppGuardConfig {
     client: AppGuardGrpcInterface,
     timeout: Option<u64>,
     default_policy: FirewallPolicy,
-    auth: AuthHandler,
+    ctx: Context,
 }
 
 impl AppGuardConfig {
@@ -37,28 +37,17 @@ impl AppGuardConfig {
     /// * `default_policy` - Default firewall policy to apply when the `AppGuard` server times out.
     /// * `firewall` - Firewall expressions (infix notation).
     #[must_use]
-    pub async fn new(
-        host: &'static str,
-        port: u16,
-        tls: bool,
-        timeout: Option<u64>,
-        default_policy: FirewallPolicy,
-        firewall: String,
-    ) -> Option<Self> {
+    pub async fn new(host: &'static str, port: u16, tls: bool) -> Option<Self> {
         let mut client = AppGuardGrpcInterface::new(host, port, tls).await.ok()?;
-        let auth = AuthHandler::new(client.clone()).await;
+        let ctx = Context::new(client.clone()).await.ok()?;
 
-        let token = auth.get_token().await;
-        client
-            .update_firewall(AppGuardFirewall { token, firewall })
-            .await
-            .ok()?;
+        // todo: get timeout and default_policy from server
 
         Some(AppGuardConfig {
             client,
             timeout,
             default_policy,
-            auth,
+            ctx,
         })
     }
 }
@@ -92,7 +81,7 @@ where
     type Error = S::Error;
     type Future = LocalBoxFuture<Result<Self::Response, Self::Error>>;
 
-    fn poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+    fn poll_ready(&mut self, cx: &mut std::task::Context<'_>) -> Poll<Result<(), Self::Error>> {
         self.next_service.lock().unwrap().poll_ready(cx)
     }
 
@@ -100,11 +89,11 @@ where
         let mut client = self.config.client.clone();
         let timeout = self.config.timeout;
         let default_policy = self.config.default_policy;
-        let auth = self.config.auth.clone();
+        let ctx = self.config.ctx.clone();
         let next_service = self.next_service.clone();
 
         Box::pin(async move {
-            let token = auth.get_token().await;
+            let token = ctx.token_provider.get().await.unwrap_or_default();
 
             let Ok(AppGuardTcpResponse { tcp_info }) = client
                 .handle_tcp_connection(timeout, to_appguard_tcp_connection(&req, token.clone()))

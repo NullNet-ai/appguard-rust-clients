@@ -4,6 +4,7 @@ use crate::control_channel::commands::{
     HeartbeatCommand, SetFirewallDefaultsCommand, UpdateTokenCommand,
 };
 use crate::control_channel::post_startup::post_startup;
+use crate::storage::{Secret, Storage};
 use await_authorization::await_authorization;
 use nullnet_libappguard::Streaming;
 use nullnet_libappguard::appguard_commands::server_message::Message;
@@ -11,7 +12,7 @@ use nullnet_libappguard::appguard_commands::{ClientMessage, ServerMessage, serve
 use nullnet_liberror::{Error, ErrorHandler, Location, location};
 use send_authenticate::send_authenticate;
 use std::sync::Arc;
-use tokio::sync::{Mutex, broadcast, mpsc};
+use tokio::sync::{Mutex, mpsc};
 
 mod await_authorization;
 mod command;
@@ -22,42 +23,39 @@ mod send_authenticate;
 pub(crate) type InboundStream = Arc<Mutex<Streaming<ServerMessage>>>;
 pub(crate) type OutboundStream = Arc<Mutex<mpsc::Sender<ClientMessage>>>;
 
-#[derive(Clone)]
-pub struct ControlChannel {
-    context: Context,
-    terminate: broadcast::Sender<()>,
-}
+// #[derive(Clone)]
+// pub struct ControlChannel {
+//     _context: Context,
+//     _terminate: broadcast::Sender<()>,
+// }
 
-impl ControlChannel {
-    pub fn new(context: Context, code: String) -> Self {
-        let (terminate, _) = broadcast::channel(1);
+// impl ControlChannel {
+//     pub fn start(context: Context, code: String) {
+//         let (terminate, _) = broadcast::channel(1);
+//
+//         tokio::spawn(stream_wrapper(
+//             context.clone(),
+//             code.clone(),
+//             terminate.subscribe(),
+//         ));
+//
+//         // Self { context, terminate }
+//     }
+//
+//     // pub async fn terminate(&self) {
+//     //     let _ = self.terminate.send(());
+//     // }
+// }
 
-        tokio::spawn(stream_wrapper(
-            context.clone(),
-            code.clone(),
-            terminate.subscribe(),
-        ));
-
-        Self { context, terminate }
-    }
-
-    pub async fn terminate(&self) {
-        let _ = self.terminate.send(());
-    }
-}
-
-async fn stream_wrapper(
+pub async fn start_control_stream(
     context: Context,
     installation_code: String,
-    mut terminate: broadcast::Receiver<()>,
+    // mut terminate: broadcast::Receiver<()>,
 ) {
-    tokio::select! {
-        _ = terminate.recv() => {}
-        _ = control_stream(context.clone(), &installation_code) => { }
-    };
+    tokio::spawn(control_stream(context.clone(), installation_code));
 }
 
-async fn control_stream(context: Context,  installation_code: &str) -> Result<(), Error> {
+async fn control_stream(context: Context, installation_code: String) -> Result<(), Error> {
     let (outbound, receiver) = mpsc::channel(64);
     let inbound = context
         .server
@@ -98,25 +96,25 @@ async fn control_stream(context: Context,  installation_code: &str) -> Result<()
                     log::error!("UpdateTokenCommand execution failed: {}", err.to_str());
                 }
             }
-            server_message::Message::Heartbeat(_) => {
+            server_message::Message::Heartbeat(()) => {
                 let cmd = HeartbeatCommand::new();
 
                 if let Err(err) = cmd.execute().await {
                     log::error!("HeartbeatCommand execution failed: {}", err.to_str());
                 }
             }
-            server_message::Message::DeviceDeauthorized(_) => {
+            server_message::Message::DeviceDeauthorized(()) => {
                 // // @TODO: Command
-                // _ = Storage::delete_value(Secret::AppId).await;
-                // _ = Storage::delete_value(Secret::AppSecret).await;
+                _ = Storage::delete_value(Secret::AppId).await;
+                _ = Storage::delete_value(Secret::AppSecret).await;
                 // // Gracefuly transition to IDLE state
                 todo!();
             }
-            server_message::Message::AuthorizationRejected(_) => {
-                Err("Unexpected message").handle_err(location!())?
+            server_message::Message::AuthorizationRejected(()) => {
+                Err("Unexpected message").handle_err(location!())?;
             }
             server_message::Message::DeviceAuthorized(_) => {
-                Err("Unexpected message").handle_err(location!())?
+                Err("Unexpected message").handle_err(location!())?;
             }
             Message::SetFirewallDefaults(defaults) => {
                 let cmd = SetFirewallDefaultsCommand::new(context.clone(), defaults);

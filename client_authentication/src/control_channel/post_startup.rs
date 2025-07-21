@@ -11,6 +11,5 @@ pub async fn post_startup(context: Context) {
 
     if token.is_none() {
         log::error!("Failed to obtain auth token");
-        return;
     }
 }

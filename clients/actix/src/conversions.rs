@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use actix_web::dev::{ServiceRequest, ServiceResponse};
 use actix_web::http::header::HeaderMap;
-use nullnet_libappguard::{
+use nullnet_libappguard::appguard::{
     AppGuardHttpRequest, AppGuardHttpResponse, AppGuardTcpConnection, AppGuardTcpInfo,
 };
 use qstring::QString;

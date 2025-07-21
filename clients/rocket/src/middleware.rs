@@ -2,21 +2,20 @@ use rocket::fairing::{Fairing, Info, Kind};
 use rocket::http::Status;
 use rocket::{Data, Request, Response};
 
-use appguard_client_authentication::AuthHandler;
-use nullnet_libappguard::{
-    AppGuardFirewall, AppGuardGrpcInterface, AppGuardTcpResponse, FirewallPolicy,
-};
-
 use crate::conversions::{
     to_appguard_http_request, to_appguard_http_response, to_appguard_tcp_connection,
 };
+use appguard_client_authentication::Context;
+use nullnet_libappguard::appguard::AppGuardTcpResponse;
+use nullnet_libappguard::appguard_commands::FirewallPolicy;
+use nullnet_libappguard::AppGuardGrpcInterface;
 
 /// `AppGuard` client configuration.
 pub struct AppGuardConfig {
     client: AppGuardGrpcInterface,
     timeout: Option<u64>,
     default_policy: FirewallPolicy,
-    auth: AuthHandler,
+    ctx: Context,
 }
 
 impl AppGuardConfig {
@@ -31,28 +30,17 @@ impl AppGuardConfig {
     /// * `default_policy` - Default firewall policy to apply when the `AppGuard` server times out.
     /// * `firewall` - Firewall expressions (infix notation).
     #[must_use]
-    pub async fn new(
-        host: &'static str,
-        port: u16,
-        tls: bool,
-        timeout: Option<u64>,
-        default_policy: FirewallPolicy,
-        firewall: String,
-    ) -> Option<Self> {
+    pub async fn new(host: &'static str, port: u16, tls: bool) -> Option<Self> {
         let mut client = AppGuardGrpcInterface::new(host, port, tls).await.ok()?;
-        let auth = AuthHandler::new(client.clone()).await;
+        let ctx = Context::new(client.clone()).await.ok()?;
 
-        let token = auth.get_token().await;
-        client
-            .update_firewall(AppGuardFirewall { token, firewall })
-            .await
-            .ok()?;
+        // todo: get timeout and default_policy from server
 
         Some(AppGuardConfig {
             client,
             timeout,
             default_policy,
-            auth,
+            ctx,
         })
     }
 }
@@ -68,7 +56,7 @@ impl Fairing for AppGuardConfig {
 
     async fn on_request(&self, req: &mut Request<'_>, _data: &mut Data<'_>) {
         let mut client = self.client.clone();
-        let token = self.auth.get_token().await;
+        let token = self.ctx.token_provider.get().await.unwrap_or_default();
 
         let AppGuardTcpResponse { tcp_info } = client
             .handle_tcp_connection(self.timeout, to_appguard_tcp_connection(req, token.clone()))
@@ -92,7 +80,7 @@ impl Fairing for AppGuardConfig {
 
     async fn on_response<'r>(&self, req: &'r Request<'_>, resp: &mut Response<'r>) {
         let mut client = self.client.clone();
-        let token = self.auth.get_token().await;
+        let token = self.ctx.token_provider.get().await.unwrap_or_default();
 
         let tcp_info = req.local_cache(|| None);
 
