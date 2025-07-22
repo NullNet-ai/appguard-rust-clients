@@ -1,4 +1,4 @@
-use appguard_axum::{AppGuardConfig, FirewallPolicy};
+use appguard_axum::{AppGuardConfig};
 use axum::http::{Response, StatusCode};
 use axum::{routing::get, Router};
 use axum_embed::{FallbackBehavior, ServeEmbed};
@@ -36,9 +36,6 @@ async fn main() {
         HOST,
         50051,
         false,
-        Some(1000),
-        FirewallPolicy::Allow,
-        "[]".to_string(),
     )
     .await
     .unwrap();

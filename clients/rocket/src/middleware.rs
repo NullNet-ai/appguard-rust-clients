@@ -51,7 +51,7 @@ impl Fairing for AppGuardConfig {
     async fn on_request(&self, req: &mut Request<'_>, _data: &mut Data<'_>) {
         let mut server = self.ctx.server.clone();
         let token = self.ctx.token_provider.get().await.unwrap_or_default();
-        let fw_defaults = self.ctx.firewall_defaults.lock().await.clone();
+        let fw_defaults = *self.ctx.firewall_defaults.lock().await;
         let timeout = fw_defaults.timeout;
         let default_policy = FirewallPolicy::try_from(fw_defaults.policy).unwrap_or_default();
 
@@ -78,7 +78,7 @@ impl Fairing for AppGuardConfig {
     async fn on_response<'r>(&self, req: &'r Request<'_>, resp: &mut Response<'r>) {
         let mut server = self.ctx.server.clone();
         let token = self.ctx.token_provider.get().await.unwrap_or_default();
-        let fw_defaults = self.ctx.firewall_defaults.lock().await.clone();
+        let fw_defaults = *self.ctx.firewall_defaults.lock().await;
         let timeout = fw_defaults.timeout;
         let default_policy = FirewallPolicy::try_from(fw_defaults.policy).unwrap_or_default();
 

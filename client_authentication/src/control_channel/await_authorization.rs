@@ -28,8 +28,8 @@ pub async fn await_authorization(
                 uuid,
                 code: installation_code.into(),
                 category: String::from("AppGuard Client"),
-                r#type: "".to_string(),
-                target_os: "".to_string(),
+                r#type: String::new(),
+                target_os: String::new(),
             },
         )),
     };
@@ -73,6 +73,6 @@ pub async fn await_authorization(
                 log::debug!("Awaiting authorization: heartbeat");
             }
             _ => Err("Unexpected message").handle_err(location!())?,
-        };
+        }
     }
 }

@@ -1,7 +1,7 @@
 use actix_web::{get, web, App, HttpResponse, HttpServer, Responder};
 use nullnet_liblogging::{Logger, LoggerConfig};
 
-use appguard_actix::{AppGuardConfig, FirewallPolicy};
+use appguard_actix::{AppGuardConfig};
 
 #[cfg(debug_assertions)]
 const HOST: &str = "localhost";

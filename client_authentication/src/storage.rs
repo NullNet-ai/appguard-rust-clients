@@ -18,7 +18,7 @@ pub enum Secret {
 }
 
 impl Secret {
-    fn as_str(&self) -> &'static str {
+    fn as_str(self) -> &'static str {
         match self {
             Secret::InstallationCode => "InstallationCode",
             Secret::AppId => "AppId",

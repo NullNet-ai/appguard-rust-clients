@@ -2,7 +2,6 @@
 extern crate rocket;
 
 use appguard_rocket::AppGuardConfig;
-use appguard_rocket::FirewallPolicy;
 use nullnet_liblogging::{Logger, LoggerConfig};
 use rocket::fs::{relative, FileServer};
 use std::net::ToSocketAddrs;
@@ -32,9 +31,6 @@ async fn rocket() -> _ {
         HOST,
         50051,
         false,
-        Some(1000),
-        FirewallPolicy::Allow,
-        "[]".to_string(),
     )
     .await
     .unwrap();

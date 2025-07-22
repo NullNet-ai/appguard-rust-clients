@@ -17,6 +17,7 @@ pub struct Context {
 }
 
 impl Context {
+    #[allow(clippy::missing_errors_doc)]
     pub async fn new(mut server: AppGuardGrpcInterface) -> Result<Self, Error> {
         Storage::init().await?;
 

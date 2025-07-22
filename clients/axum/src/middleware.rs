@@ -86,7 +86,7 @@ where
 
         Box::pin(async move {
             let token = ctx.token_provider.get().await.unwrap_or_default();
-            let fw_defaults = ctx.firewall_defaults.lock().await.clone();
+            let fw_defaults = *ctx.firewall_defaults.lock().await;
             let timeout = fw_defaults.timeout;
             let default_policy = FirewallPolicy::try_from(fw_defaults.policy).unwrap_or_default();
 
