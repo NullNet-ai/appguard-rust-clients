@@ -18,7 +18,7 @@ pub struct Context {
 
 impl Context {
     #[allow(clippy::missing_errors_doc)]
-    pub async fn new() -> Result<Self, Error> {
+    pub async fn new(r#type: String) -> Result<Self, Error> {
         let host = std::env::var("CONTROL_SERVICE_ADDR").handle_err(location!())?;
         let port_str = std::env::var("CONTROL_SERVICE_PORT").handle_err(location!())?;
         let port = port_str.parse::<u16>().handle_err(location!())?;
@@ -61,7 +61,7 @@ impl Context {
             firewall_defaults: Arc::new(Mutex::new(firewall_defaults)),
         };
 
-        start_control_stream(ctx.clone(), installation_code).await;
+        start_control_stream(ctx.clone(), installation_code, r#type).await;
 
         Ok(ctx)
     }

@@ -23,7 +23,7 @@ impl AppGuardMiddleware {
     /// Create a new `AppGuard` middleware instance.
     #[must_use]
     pub async fn new() -> Option<Self> {
-        let ctx = Context::new().await.ok()?;
+        let ctx = Context::new(String::from("Actix")).await.ok()?;
 
         Some(AppGuardMiddleware { ctx })
     }

@@ -50,12 +50,16 @@ pub(crate) type OutboundStream = Arc<Mutex<mpsc::Sender<ClientMessage>>>;
 pub async fn start_control_stream(
     context: Context,
     installation_code: String,
-    // mut terminate: broadcast::Receiver<()>,
+    r#type: String, // mut terminate: broadcast::Receiver<()>,
 ) {
-    tokio::spawn(control_stream(context.clone(), installation_code));
+    tokio::spawn(control_stream(context.clone(), installation_code, r#type));
 }
 
-async fn control_stream(context: Context, installation_code: String) -> Result<(), Error> {
+async fn control_stream(
+    context: Context,
+    installation_code: String,
+    r#type: String,
+) -> Result<(), Error> {
     let (outbound, receiver) = mpsc::channel(64);
     let inbound = context
         .server
@@ -66,7 +70,7 @@ async fn control_stream(context: Context, installation_code: String) -> Result<(
     let inbound = Arc::new(Mutex::new(inbound));
     let outbound = Arc::new(Mutex::new(outbound));
 
-    match await_authorization(inbound.clone(), outbound.clone(), installation_code).await? {
+    match await_authorization(inbound.clone(), outbound.clone(), installation_code, r#type).await? {
         await_authorization::Verdict::Approved => {}
         await_authorization::Verdict::Rejected => {
             Err("Auhtorization has been rejected").handle_err(location!())?;

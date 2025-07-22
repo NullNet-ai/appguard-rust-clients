@@ -15,6 +15,7 @@ pub async fn await_authorization(
     inbound: InboundStream,
     outbound: OutboundStream,
     installation_code: impl Into<String>,
+    r#type: String,
 ) -> Result<Verdict, Error> {
     let uuid = table_load_from_device()
         .handle_err(location!())?
@@ -28,7 +29,7 @@ pub async fn await_authorization(
                 uuid,
                 code: installation_code.into(),
                 category: String::from("AppGuard Client"),
-                r#type: String::new(),
+                r#type,
                 target_os: String::new(),
             },
         )),
