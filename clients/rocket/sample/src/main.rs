@@ -2,7 +2,6 @@
 extern crate rocket;
 
 use appguard_rocket::AppGuardConfig;
-use nullnet_liblogging::{Logger, LoggerConfig};
 use rocket::fs::{relative, FileServer};
 use std::net::ToSocketAddrs;
 
@@ -13,8 +12,8 @@ const HOST: &str = "appguard";
 
 #[launch]
 async fn rocket() -> _ {
-    let logger_config = LoggerConfig::new(true, false, None, vec!["rocket_sample"]);
-    Logger::init(logger_config);
+    // let logger_config = LoggerConfig::new(true, false, None, vec!["rocket_sample"]);
+    // Logger::init(logger_config);
 
     let addr = format!("{HOST}:3003")
         .to_socket_addrs()

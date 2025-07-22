@@ -1,5 +1,4 @@
 use actix_web::{get, web, App, HttpResponse, HttpServer, Responder};
-use nullnet_liblogging::{Logger, LoggerConfig};
 
 use appguard_actix::{AppGuardConfig};
 
@@ -19,8 +18,8 @@ async fn not_found() -> impl Responder {
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    let logger_config = LoggerConfig::new(true, false, None, vec!["actix_sample"]);
-    Logger::init(logger_config);
+    // let logger_config = LoggerConfig::new(true, false, None, vec!["actix_sample"]);
+    // Logger::init(logger_config);
 
     let appguard_config = AppGuardConfig::new(HOST, 50051, false).await.unwrap();
 

@@ -4,7 +4,6 @@ publish = false
 edition = "2021"
 
 [dependencies]
-nullnet-liblogging = "0.2.0"
 appguard-actix = { path = ".."}
 actix-web = "4.9.0"
 actix-files = "0.6.6"
