@@ -31,7 +31,7 @@ async fn main() {
     // let logger_config = LoggerConfig::new(true, false, None, vec!["axum_sample"]);
     // Logger::init(logger_config);
 
-    let appguard_config = AppGuardMiddleware::new().await.unwrap();
+    let middleware = AppGuardMiddleware::new().await.unwrap();
 
     let listener = tokio::net::TcpListener::bind(format!("{HOST}:3002"))
         .await
@@ -47,7 +47,7 @@ async fn main() {
         .route("/hello", get(hello))
         .nest_service("/", serve_assets)
         .fallback(get(not_found))
-        .layer(appguard_config)
+        .layer(middleware)
         .into_make_service_with_connect_info::<SocketAddr>();
 
     axum::serve(listener, app).await.unwrap();

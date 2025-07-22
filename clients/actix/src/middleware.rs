@@ -43,10 +43,10 @@ where
     type Future = LocalBoxFuture<Result<Self::Transform, Self::InitError>>;
 
     fn new_transform(&self, service: S) -> Self::Future {
-        let config = self.to_owned();
+        let middleware = self.to_owned();
         Box::pin(async move {
             Ok(AppGuardMiddlewareImpl {
-                config,
+                middleware,
                 next_service: Rc::new(service),
             })
         })
@@ -54,7 +54,7 @@ where
 }
 
 pub struct AppGuardMiddlewareImpl<S> {
-    config: AppGuardMiddleware,
+    middleware: AppGuardMiddleware,
     next_service: Rc<S>,
 }
 
@@ -71,8 +71,8 @@ where
     forward_ready!(next_service);
 
     fn call(&self, req: ServiceRequest) -> Self::Future {
-        let mut server = self.config.ctx.server.clone();
-        let ctx = self.config.ctx.clone();
+        let mut server = self.middleware.ctx.server.clone();
+        let ctx = self.middleware.ctx.clone();
         let next_service = self.next_service.clone();
 
         Box::pin(async move {

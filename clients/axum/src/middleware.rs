@@ -37,9 +37,9 @@ impl<S> Layer<S> for AppGuardMiddleware {
     type Service = AppGuardMiddlewareImpl<S>;
 
     fn layer(&self, inner: S) -> Self::Service {
-        let config = self.to_owned();
+        let middleware = self.to_owned();
         AppGuardMiddlewareImpl {
-            config,
+            middleware,
             next_service: Arc::new(Mutex::new(inner)),
         }
     }
@@ -47,7 +47,7 @@ impl<S> Layer<S> for AppGuardMiddleware {
 
 #[derive(Clone)]
 pub struct AppGuardMiddlewareImpl<S> {
-    config: AppGuardMiddleware,
+    middleware: AppGuardMiddleware,
     next_service: Arc<Mutex<S>>,
 }
 
@@ -65,8 +65,8 @@ where
     }
 
     fn call(&mut self, req: Request) -> Self::Future {
-        let mut server = self.config.ctx.server.clone();
-        let ctx = self.config.ctx.clone();
+        let mut server = self.middleware.ctx.server.clone();
+        let ctx = self.middleware.ctx.clone();
         let next_service = self.next_service.clone();
 
         Box::pin(async move {

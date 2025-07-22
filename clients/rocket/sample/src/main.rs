@@ -26,9 +26,9 @@ async fn rocket() -> _ {
         .merge(("port", addr.port()))
         .merge(("log_level", "critical"));
 
-    let appguard_config = AppGuardMiddleware::new().await.unwrap();
+    let middleware = AppGuardMiddleware::new().await.unwrap();
 
     rocket::custom(rocket_config)
-        .attach(appguard_config)
+        .attach(middleware)
         .mount("/", FileServer::from(relative!("../../../static/formMD")))
 }
