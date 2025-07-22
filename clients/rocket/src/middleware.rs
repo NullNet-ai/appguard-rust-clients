@@ -12,9 +12,6 @@ use nullnet_libappguard::AppGuardGrpcInterface;
 
 /// `AppGuard` client configuration.
 pub struct AppGuardConfig {
-    client: AppGuardGrpcInterface,
-    timeout: Option<u64>,
-    default_policy: FirewallPolicy,
     ctx: Context,
 }
 
@@ -31,15 +28,12 @@ impl AppGuardConfig {
     /// * `firewall` - Firewall expressions (infix notation).
     #[must_use]
     pub async fn new(host: &'static str, port: u16, tls: bool) -> Option<Self> {
-        let mut client = AppGuardGrpcInterface::new(host, port, tls).await.ok()?;
+        let client = AppGuardGrpcInterface::new(host, port, tls).await.ok()?;
         let ctx = Context::new(client.clone()).await.ok()?;
 
         // todo: get timeout and default_policy from server
 
         Some(AppGuardConfig {
-            client,
-            timeout,
-            default_policy,
             ctx,
         })
     }
@@ -55,20 +49,23 @@ impl Fairing for AppGuardConfig {
     }
 
     async fn on_request(&self, req: &mut Request<'_>, _data: &mut Data<'_>) {
-        let mut client = self.client.clone();
+        let mut server = self.ctx.server.clone();
         let token = self.ctx.token_provider.get().await.unwrap_or_default();
+        let fw_defaults = self.ctx.firewall_defaults.lock().await.clone();
+        let timeout = fw_defaults.timeout;
+        let default_policy = FirewallPolicy::try_from(fw_defaults.policy).unwrap_or_default();
 
-        let AppGuardTcpResponse { tcp_info } = client
-            .handle_tcp_connection(self.timeout, to_appguard_tcp_connection(req, token.clone()))
+        let AppGuardTcpResponse { tcp_info } = server
+            .handle_tcp_connection(timeout, to_appguard_tcp_connection(req, token.clone()))
             .await
             .expect("Internal server error");
 
         req.local_cache(|| tcp_info.clone());
 
-        let request_handler_res = client
+        let request_handler_res = server
             .handle_http_request(
-                self.timeout,
-                self.default_policy,
+                timeout,
+                default_policy,
                 to_appguard_http_request(req, tcp_info, token),
             )
             .await
@@ -79,15 +76,18 @@ impl Fairing for AppGuardConfig {
     }
 
     async fn on_response<'r>(&self, req: &'r Request<'_>, resp: &mut Response<'r>) {
-        let mut client = self.client.clone();
+        let mut server = self.ctx.server.clone();
         let token = self.ctx.token_provider.get().await.unwrap_or_default();
+        let fw_defaults = self.ctx.firewall_defaults.lock().await.clone();
+        let timeout = fw_defaults.timeout;
+        let default_policy = FirewallPolicy::try_from(fw_defaults.policy).unwrap_or_default();
 
         let tcp_info = req.local_cache(|| None);
 
-        let Ok(response_handler_res) = client
+        let Ok(response_handler_res) = server
             .handle_http_response(
-                self.timeout,
-                self.default_policy,
+                timeout,
+                default_policy,
                 to_appguard_http_response(resp, tcp_info.to_owned(), token),
             )
             .await

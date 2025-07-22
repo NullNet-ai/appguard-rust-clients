@@ -17,9 +17,6 @@ use nullnet_libappguard::AppGuardGrpcInterface;
 #[derive(Clone)]
 /// `AppGuard` client configuration.
 pub struct AppGuardConfig {
-    client: AppGuardGrpcInterface,
-    timeout: Option<u64>,
-    default_policy: FirewallPolicy,
     ctx: Context,
 }
 
@@ -36,15 +33,12 @@ impl AppGuardConfig {
     /// * `firewall` - Firewall expressions (infix notation).
     #[must_use]
     pub async fn new(host: &'static str, port: u16, tls: bool) -> Option<Self> {
-        let mut client = AppGuardGrpcInterface::new(host, port, tls).await.ok()?;
+        let client = AppGuardGrpcInterface::new(host, port, tls).await.ok()?;
         let ctx = Context::new(client.clone()).await.ok()?;
 
         // todo: get timeout and default_policy from server
 
         Some(AppGuardConfig {
-            client,
-            timeout,
-            default_policy,
             ctx,
         })
     }
@@ -92,22 +86,23 @@ where
     forward_ready!(next_service);
 
     fn call(&self, req: ServiceRequest) -> Self::Future {
-        let mut client = self.config.client.clone();
-        let timeout = self.config.timeout;
-        let default_policy = self.config.default_policy;
+        let mut server = self.config.ctx.server.clone();
         let ctx = self.config.ctx.clone();
         let next_service = self.next_service.clone();
 
         Box::pin(async move {
             let token = ctx.token_provider.get().await.unwrap_or_default();
+            let fw_defaults = ctx.firewall_defaults.lock().await.clone();
+            let timeout = fw_defaults.timeout;
+            let default_policy = FirewallPolicy::try_from(fw_defaults.policy).unwrap_or_default();
 
-            let tcp_info = client
+            let tcp_info = server
                 .handle_tcp_connection(timeout, to_appguard_tcp_connection(&req, token.clone()))
                 .await
                 .map_err(|e| GrcpError::new(e.message()))?
                 .tcp_info;
 
-            let request_handler_res = client
+            let request_handler_res = server
                 .handle_http_request(
                     timeout,
                     default_policy,
@@ -125,7 +120,7 @@ where
 
             let resp: ServiceResponse = fut.await?;
 
-            let response_handler_res = client
+            let response_handler_res = server
                 .handle_http_response(
                     timeout,
                     default_policy,

@@ -19,9 +19,6 @@ use crate::conversions::{
 #[derive(Clone)]
 /// `AppGuard` client configuration.
 pub struct AppGuardConfig {
-    client: AppGuardGrpcInterface,
-    timeout: Option<u64>,
-    default_policy: FirewallPolicy,
     ctx: Context,
 }
 
@@ -38,15 +35,12 @@ impl AppGuardConfig {
     /// * `firewall` - Firewall expressions (infix notation).
     #[must_use]
     pub async fn new(host: &'static str, port: u16, tls: bool) -> Option<Self> {
-        let mut client = AppGuardGrpcInterface::new(host, port, tls).await.ok()?;
+        let client = AppGuardGrpcInterface::new(host, port, tls).await.ok()?;
         let ctx = Context::new(client.clone()).await.ok()?;
 
         // todo: get timeout and default_policy from server
 
         Some(AppGuardConfig {
-            client,
-            timeout,
-            default_policy,
             ctx,
         })
     }
@@ -86,23 +80,24 @@ where
     }
 
     fn call(&mut self, req: Request) -> Self::Future {
-        let mut client = self.config.client.clone();
-        let timeout = self.config.timeout;
-        let default_policy = self.config.default_policy;
+        let mut server = self.config.ctx.server.clone();
         let ctx = self.config.ctx.clone();
         let next_service = self.next_service.clone();
 
         Box::pin(async move {
             let token = ctx.token_provider.get().await.unwrap_or_default();
+            let fw_defaults = ctx.firewall_defaults.lock().await.clone();
+            let timeout = fw_defaults.timeout;
+            let default_policy = FirewallPolicy::try_from(fw_defaults.policy).unwrap_or_default();
 
-            let Ok(AppGuardTcpResponse { tcp_info }) = client
+            let Ok(AppGuardTcpResponse { tcp_info }) = server
                 .handle_tcp_connection(timeout, to_appguard_tcp_connection(&req, token.clone()))
                 .await
             else {
                 return Ok(internal_server_error_response());
             };
 
-            let Ok(request_handler_res) = client
+            let Ok(request_handler_res) = server
                 .handle_http_request(
                     timeout,
                     default_policy,
@@ -122,7 +117,7 @@ where
 
             let resp: Response = fut.await?;
 
-            let Ok(response_handler_res) = client
+            let Ok(response_handler_res) = server
                 .handle_http_response(
                     timeout,
                     default_policy,

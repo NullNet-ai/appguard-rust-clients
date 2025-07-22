@@ -1922,9 +1922,9 @@ dependencies = [
 
 [[package]]
 name = "nullnet-libappguard"
-version = "0.1.8"
+version = "0.1.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6e9b015d2ca04e9cc7baab0ff776debdec5fc4cef5da8813ee5f03728bddfa45"
+checksum = "aa3364e03d9247e72fb1695c23f6abc62cb91f3a8ec6446809de19195e9a899b"
 dependencies = [
  "prost",
  "serde",

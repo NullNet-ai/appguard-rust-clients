@@ -2,8 +2,8 @@ use crate::control_channel::start_control_stream;
 use crate::storage::{Secret, Storage};
 use crate::token_provider::TokenProvider;
 use nullnet_libappguard::AppGuardGrpcInterface;
-use nullnet_libappguard::appguard_commands::{FirewallDefaults, FirewallPolicy};
-use nullnet_liberror::Error;
+use nullnet_libappguard::appguard_commands::FirewallDefaults;
+use nullnet_liberror::{Error, ErrorHandler, location, Location};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
@@ -17,7 +17,7 @@ pub struct Context {
 }
 
 impl Context {
-    pub async fn new(server: AppGuardGrpcInterface) -> Result<Self, Error> {
+    pub async fn new(mut server: AppGuardGrpcInterface) -> Result<Self, Error> {
         Storage::init().await?;
 
         let app_id = Storage::get_value(Secret::AppId)
@@ -38,15 +38,18 @@ impl Context {
 
         let token_provider = TokenProvider::new();
 
+        let token = token_provider.get().await.unwrap_or_default();
+        let firewall_defaults = server
+            .firewall_defaults_request(token)
+            .await
+            .handle_err(location!())?;
+
         let ctx = Self {
             app_id,
             app_secret,
             token_provider,
             server,
-            firewall_defaults: Arc::new(Mutex::new(FirewallDefaults {
-                timeout: 1000,
-                policy: FirewallPolicy::default().into(),
-            })),
+            firewall_defaults: Arc::new(Mutex::new(firewall_defaults)),
         };
 
         start_control_stream(ctx.clone(), installation_code).await;
