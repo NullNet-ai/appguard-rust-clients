@@ -1,6 +1,6 @@
 use actix_web::{get, web, App, HttpResponse, HttpServer, Responder};
 
-use appguard_actix::{AppGuardConfig};
+use appguard_actix::AppGuardMiddleware;
 
 #[cfg(debug_assertions)]
 const HOST: &str = "localhost";
@@ -21,7 +21,7 @@ async fn main() -> std::io::Result<()> {
     // let logger_config = LoggerConfig::new(true, false, None, vec!["actix_sample"]);
     // Logger::init(logger_config);
 
-    let appguard_config = AppGuardConfig::new(HOST, 50051, false).await.unwrap();
+    let appguard_config = AppGuardMiddleware::new().await.unwrap();
 
     HttpServer::new(move || {
         App::new()

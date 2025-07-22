@@ -1,4 +1,4 @@
-pub use middleware::AppGuardConfig;
+pub use middleware::AppGuardMiddleware;
 
 mod conversions;
 mod middleware;

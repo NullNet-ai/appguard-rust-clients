@@ -3,7 +3,7 @@ use crate::storage::{Secret, Storage};
 use crate::token_provider::TokenProvider;
 use nullnet_libappguard::AppGuardGrpcInterface;
 use nullnet_libappguard::appguard_commands::FirewallDefaults;
-use nullnet_liberror::{Error, ErrorHandler, location, Location};
+use nullnet_liberror::{Error, ErrorHandler, Location, location};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
@@ -18,7 +18,15 @@ pub struct Context {
 
 impl Context {
     #[allow(clippy::missing_errors_doc)]
-    pub async fn new(mut server: AppGuardGrpcInterface) -> Result<Self, Error> {
+    pub async fn new() -> Result<Self, Error> {
+        let host = std::env::var("CONTROL_SERVICE_ADDR").handle_err(location!())?;
+        let port_str = std::env::var("CONTROL_SERVICE_PORT").handle_err(location!())?;
+        let port = port_str.parse::<u16>().handle_err(location!())?;
+
+        let mut server = AppGuardGrpcInterface::new(&host, port, false)
+            .await
+            .handle_err(location!())?;
+
         Storage::init().await?;
 
         let app_id = Storage::get_value(Secret::AppId)

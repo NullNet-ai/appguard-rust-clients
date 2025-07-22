@@ -12,55 +12,40 @@ use actix_web::{
 };
 use appguard_client_authentication::Context;
 use nullnet_libappguard::appguard_commands::FirewallPolicy;
-use nullnet_libappguard::AppGuardGrpcInterface;
 
 #[derive(Clone)]
-/// `AppGuard` client configuration.
-pub struct AppGuardConfig {
+/// `AppGuard` middleware.
+pub struct AppGuardMiddleware {
     ctx: Context,
 }
 
-impl AppGuardConfig {
-    /// Create a new configuration for the client.
-    ///
-    /// # Arguments
-    ///
-    /// * `host` - Hostname of the `AppGuard` server.
-    /// * `port` - Port of the `AppGuard` server.
-    /// * `tls` - Whether traffic to the `AppGuard` server should be secured with TLS.
-    /// * `timeout` - Timeout for calls to the `AppGuard` server (milliseconds).
-    /// * `default_policy` - Default firewall policy to apply when the `AppGuard` server times out.
-    /// * `firewall` - Firewall expressions (infix notation).
+impl AppGuardMiddleware {
+    /// Create a new `AppGuard` middleware instance.
     #[must_use]
-    pub async fn new(host: &'static str, port: u16, tls: bool) -> Option<Self> {
-        let client = AppGuardGrpcInterface::new(host, port, tls).await.ok()?;
-        let ctx = Context::new(client.clone()).await.ok()?;
+    pub async fn new() -> Option<Self> {
+        let ctx = Context::new().await.ok()?;
 
-        // todo: get timeout and default_policy from server
-
-        Some(AppGuardConfig {
-            ctx,
-        })
+        Some(AppGuardMiddleware { ctx })
     }
 }
 
 type LocalBoxFuture<T> = Pin<Box<dyn Future<Output = T> + 'static>>;
 
-impl<S> Transform<S, ServiceRequest> for AppGuardConfig
+impl<S> Transform<S, ServiceRequest> for AppGuardMiddleware
 where
     S: Service<ServiceRequest, Response = ServiceResponse, Error = Error> + 'static,
     S::Future: 'static,
 {
     type Response = S::Response;
     type Error = Error;
-    type Transform = AppGuardMiddleware<S>;
+    type Transform = AppGuardMiddlewareImpl<S>;
     type InitError = ();
     type Future = LocalBoxFuture<Result<Self::Transform, Self::InitError>>;
 
     fn new_transform(&self, service: S) -> Self::Future {
         let config = self.to_owned();
         Box::pin(async move {
-            Ok(AppGuardMiddleware {
+            Ok(AppGuardMiddlewareImpl {
                 config,
                 next_service: Rc::new(service),
             })
@@ -68,12 +53,12 @@ where
     }
 }
 
-pub struct AppGuardMiddleware<S> {
-    config: AppGuardConfig,
+pub struct AppGuardMiddlewareImpl<S> {
+    config: AppGuardMiddleware,
     next_service: Rc<S>,
 }
 
-impl<S> Service<ServiceRequest> for AppGuardMiddleware<S>
+impl<S> Service<ServiceRequest> for AppGuardMiddlewareImpl<S>
 where
     S: Service<ServiceRequest, Response = ServiceResponse, Error = Error> + 'static,
     S::Future: 'static,

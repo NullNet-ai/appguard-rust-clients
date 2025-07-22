@@ -6,7 +6,6 @@ use axum::http::StatusCode;
 use axum::{body::Body, extract::Request, response::Response};
 use nullnet_libappguard::appguard::AppGuardTcpResponse;
 use nullnet_libappguard::appguard_commands::FirewallPolicy;
-use nullnet_libappguard::AppGuardGrpcInterface;
 use std::task::Poll;
 use tower::{Layer, Service};
 
@@ -17,43 +16,29 @@ use crate::conversions::{
 };
 
 #[derive(Clone)]
-/// `AppGuard` client configuration.
-pub struct AppGuardConfig {
+/// `AppGuard` middleware.
+pub struct AppGuardMiddleware {
     ctx: Context,
 }
 
-impl AppGuardConfig {
-    /// Create a new configuration for the client.
-    ///
-    /// # Arguments
-    ///
-    /// * `host` - Hostname of the `AppGuard` server.
-    /// * `port` - Port of the `AppGuard` server.
-    /// * `tls` - Whether traffic to the `AppGuard` server should be secured with TLS.
-    /// * `timeout` - Timeout for calls to the `AppGuard` server (milliseconds).
-    /// * `default_policy` - Default firewall policy to apply when the `AppGuard` server times out.
-    /// * `firewall` - Firewall expressions (infix notation).
+impl AppGuardMiddleware {
+    /// Create a new `AppGuard` middleware instance.
     #[must_use]
-    pub async fn new(host: &'static str, port: u16, tls: bool) -> Option<Self> {
-        let client = AppGuardGrpcInterface::new(host, port, tls).await.ok()?;
-        let ctx = Context::new(client.clone()).await.ok()?;
+    pub async fn new() -> Option<Self> {
+        let ctx = Context::new().await.ok()?;
 
-        // todo: get timeout and default_policy from server
-
-        Some(AppGuardConfig {
-            ctx,
-        })
+        Some(AppGuardMiddleware { ctx })
     }
 }
 
 type LocalBoxFuture<T> = Pin<Box<dyn Future<Output = T> + Send + 'static>>;
 
-impl<S> Layer<S> for AppGuardConfig {
-    type Service = AppGuardMiddleware<S>;
+impl<S> Layer<S> for AppGuardMiddleware {
+    type Service = AppGuardMiddlewareImpl<S>;
 
     fn layer(&self, inner: S) -> Self::Service {
         let config = self.to_owned();
-        AppGuardMiddleware {
+        AppGuardMiddlewareImpl {
             config,
             next_service: Arc::new(Mutex::new(inner)),
         }
@@ -61,12 +46,12 @@ impl<S> Layer<S> for AppGuardConfig {
 }
 
 #[derive(Clone)]
-pub struct AppGuardMiddleware<S> {
-    config: AppGuardConfig,
+pub struct AppGuardMiddlewareImpl<S> {
+    config: AppGuardMiddleware,
     next_service: Arc<Mutex<S>>,
 }
 
-impl<S> Service<Request> for AppGuardMiddleware<S>
+impl<S> Service<Request> for AppGuardMiddlewareImpl<S>
 where
     S: Service<Request, Response = Response> + Send + 'static,
     S::Future: Send + 'static,

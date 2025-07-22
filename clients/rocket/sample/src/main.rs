@@ -1,7 +1,7 @@
 #[macro_use]
 extern crate rocket;
 
-use appguard_rocket::AppGuardConfig;
+use appguard_rocket::AppGuardMiddleware;
 use rocket::fs::{relative, FileServer};
 use std::net::ToSocketAddrs;
 
@@ -26,13 +26,7 @@ async fn rocket() -> _ {
         .merge(("port", addr.port()))
         .merge(("log_level", "critical"));
 
-    let appguard_config = AppGuardConfig::new(
-        HOST,
-        50051,
-        false,
-    )
-    .await
-    .unwrap();
+    let appguard_config = AppGuardMiddleware::new().await.unwrap();
 
     rocket::custom(rocket_config)
         .attach(appguard_config)

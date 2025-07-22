@@ -1,4 +1,4 @@
-use appguard_axum::{AppGuardConfig};
+use appguard_axum::AppGuardMiddleware;
 use axum::http::{Response, StatusCode};
 use axum::{routing::get, Router};
 use axum_embed::{FallbackBehavior, ServeEmbed};
@@ -31,13 +31,7 @@ async fn main() {
     // let logger_config = LoggerConfig::new(true, false, None, vec!["axum_sample"]);
     // Logger::init(logger_config);
 
-    let appguard_config = AppGuardConfig::new(
-        HOST,
-        50051,
-        false,
-    )
-    .await
-    .unwrap();
+    let appguard_config = AppGuardMiddleware::new().await.unwrap();
 
     let listener = tokio::net::TcpListener::bind(format!("{HOST}:3002"))
         .await
