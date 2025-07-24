@@ -12,6 +12,7 @@ const HOST: &str = "appguard";
 
 #[launch]
 async fn rocket() -> _ {
+    env_logger::init();
     // let logger_config = LoggerConfig::new(true, false, None, vec!["rocket_sample"]);
     // Logger::init(logger_config);
 

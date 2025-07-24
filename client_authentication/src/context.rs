@@ -47,21 +47,27 @@ impl Context {
 
         let token_provider = TokenProvider::new();
 
-        let token = token_provider.get().await.unwrap_or_default();
+        let ctx = Self {
+            app_id,
+            app_secret,
+            token_provider: token_provider.clone(),
+            server: server.clone(),
+            firewall_defaults: Arc::new(Mutex::new(FirewallDefaults::default())),
+        };
+
+        start_control_stream(ctx.clone(), installation_code, r#type).await;
+
+        let mut token = token_provider.get().await.unwrap_or_default();
+        while token.is_empty() {
+            tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+            token = token_provider.get().await.unwrap_or_default();
+        }
+
         let firewall_defaults = server
             .firewall_defaults_request(token)
             .await
             .handle_err(location!())?;
-
-        let ctx = Self {
-            app_id,
-            app_secret,
-            token_provider,
-            server,
-            firewall_defaults: Arc::new(Mutex::new(firewall_defaults)),
-        };
-
-        start_control_stream(ctx.clone(), installation_code, r#type).await;
+        *ctx.firewall_defaults.lock().await = firewall_defaults;
 
         Ok(ctx)
     }

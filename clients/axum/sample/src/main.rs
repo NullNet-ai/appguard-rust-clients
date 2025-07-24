@@ -28,6 +28,7 @@ struct FormMD;
 
 #[tokio::main]
 async fn main() {
+    env_logger::init();
     // let logger_config = LoggerConfig::new(true, false, None, vec!["axum_sample"]);
     // Logger::init(logger_config);
 

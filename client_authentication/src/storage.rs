@@ -81,7 +81,8 @@ impl Storage {
 
     pub async fn get_value(secret: Secret) -> Option<String> {
         let store = STORE.lock().await;
-        store.as_ref()?.values.get(secret.as_str()).cloned()
+        let val = store.as_ref()?.values.get(secret.as_str()).cloned();
+        val.and_then(|v| if v.is_empty() { None } else { Some(v) })
     }
 
     pub async fn set_value(secret: Secret, value: &str) -> Result<(), Error> {

@@ -6,3 +6,4 @@ edition = "2021"
 [dependencies]
 appguard-rocket = { path = ".."}
 rocket = "0.5.1"
+env_logger.workspace = true

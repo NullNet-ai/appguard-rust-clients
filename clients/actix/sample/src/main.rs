@@ -18,6 +18,7 @@ async fn not_found() -> impl Responder {
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    env_logger::init();
     // let logger_config = LoggerConfig::new(true, false, None, vec!["actix_sample"]);
     // Logger::init(logger_config);
 
