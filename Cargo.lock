@@ -330,19 +330,19 @@ checksum = "dcfed56ad506cb2c684a14971b8861fdc3baaaae314b9e5f9bb532cbe3ba7a4f"
 
 [[package]]
 name = "appguard-actix"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "actix-web",
- "appguard-client-authentication",
+ "appguard-client-authentication 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "nullnet-libappguard",
  "qstring",
 ]
 
 [[package]]
 name = "appguard-axum"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
- "appguard-client-authentication",
+ "appguard-client-authentication 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "axum 0.7.9",
  "axum-extra",
  "nullnet-libappguard",
@@ -352,7 +352,24 @@ dependencies = [
 
 [[package]]
 name = "appguard-client-authentication"
-version = "0.1.0"
+version = "0.2.0"
+dependencies = [
+ "dirs",
+ "futures-util",
+ "log",
+ "nullnet-libappguard",
+ "nullnet-liberror",
+ "serde",
+ "serde_json",
+ "smbios-lib",
+ "tokio",
+]
+
+[[package]]
+name = "appguard-client-authentication"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d255a8bb5b0a1f2f8bbd0239dd494e2e848edcc3cb89717e505131e6110ba0b9"
 dependencies = [
  "dirs",
  "futures-util",
@@ -367,9 +384,9 @@ dependencies = [
 
 [[package]]
 name = "appguard-rocket"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
- "appguard-client-authentication",
+ "appguard-client-authentication 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "nullnet-libappguard",
  "qstring",
  "rocket",
