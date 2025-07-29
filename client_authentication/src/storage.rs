@@ -36,7 +36,7 @@ pub struct Storage;
 
 static STORAGE_PATH: std::sync::LazyLock<PathBuf> = std::sync::LazyLock::new(|| {
     let mut path = config_dir().unwrap_or_else(|| PathBuf::from("."));
-    path.push("wallguard");
+    path.push("appguard");
     path
 });
 

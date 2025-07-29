@@ -9,8 +9,6 @@ use tokio::sync::Mutex;
 
 #[derive(Clone)]
 pub struct Context {
-    pub app_id: String,
-    pub app_secret: String,
     pub token_provider: TokenProvider,
     pub server: AppGuardGrpcInterface,
     pub firewall_defaults: Arc<Mutex<FirewallDefaults>>,
@@ -29,27 +27,19 @@ impl Context {
 
         Storage::init().await?;
 
-        let app_id = Storage::get_value(Secret::AppId)
-            .await
-            .or_else(|| std::env::var("APP_ID").ok())
-            .unwrap_or_default();
-
-        let app_secret = Storage::get_value(Secret::AppSecret)
-            .await
-            .or_else(|| std::env::var("APP_SECRET").ok())
-            .unwrap_or_default();
-
-        let installation_code = Storage::get_value(Secret::InstallationCode)
-            .await
-            .or_else(|| std::env::var("INSTALLATION_CODE").ok())
-            .unwrap_or_default();
+        let mut installation_code_res = std::env::var("INSTALLATION_CODE").handle_err(location!());
+        if installation_code_res.is_err() {
+            installation_code_res = Storage::get_value(Secret::InstallationCode)
+                .await
+                .ok_or("Installation code not set")
+                .handle_err(location!());
+        }
+        let installation_code = installation_code_res?;
         Storage::set_value(Secret::InstallationCode, &installation_code).await?;
 
         let token_provider = TokenProvider::new();
 
         let ctx = Self {
-            app_id,
-            app_secret,
             token_provider: token_provider.clone(),
             server: server.clone(),
             firewall_defaults: Arc::new(Mutex::new(FirewallDefaults::default())),
