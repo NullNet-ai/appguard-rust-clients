@@ -14,7 +14,7 @@ impl SetFirewallDefaultsCommand {
 
 impl ExecutableCommand for SetFirewallDefaultsCommand {
     async fn execute(self) -> Result<(), nullnet_liberror::Error> {
-        log::debug!("Received UpdateTokenCommand");
+        log::debug!("Received SetFirewallDefaultsCommand");
         *self.context.firewall_defaults.lock().await = self.defaults;
         Ok(())
     }
