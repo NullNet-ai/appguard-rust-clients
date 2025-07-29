@@ -1,12 +1,11 @@
 use axum::extract::Request;
 use axum::http::{HeaderMap, Response};
+use nullnet_libappguard::appguard::{
+    AppGuardHttpRequest, AppGuardHttpResponse, AppGuardTcpConnection, AppGuardTcpInfo,
+};
 use qstring::QString;
 use std::collections::HashMap;
 use std::net::SocketAddr;
-
-use nullnet_libappguard::{
-    AppGuardHttpRequest, AppGuardHttpResponse, AppGuardTcpConnection, AppGuardTcpInfo,
-};
 
 pub(crate) fn to_appguard_tcp_connection(req: &Request, token: String) -> AppGuardTcpConnection {
     let source = req

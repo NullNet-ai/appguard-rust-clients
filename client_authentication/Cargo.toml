@@ -1,6 +1,6 @@
 [package]
 name = "appguard-client-authentication"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024"
 license = "AGPL-3.0-only"
 description = "Library for AppGuard clients authentication"
@@ -10,6 +10,11 @@ categories = ["network-programming"]
 
 [dependencies]
 nullnet-libappguard.workspace = true
-tokio = "1.43.0"
+nullnet-liberror = "0.1.1"
+tokio = { version = "1.43.0", features = ["fs"] }
 log = "0.4.26"
 futures-util = "0.3.31"
+serde = { version = "1.0.219", features = ["derive"] }
+dirs = "6.0.0"
+smbios-lib = "0.9.2"
+serde_json = "1.0.140"

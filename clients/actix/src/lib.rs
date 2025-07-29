@@ -1,6 +1,4 @@
-pub use nullnet_libappguard::FirewallPolicy;
-
-pub use middleware::AppGuardConfig;
+pub use middleware::AppGuardMiddleware;
 
 mod conversions;
 mod middleware;

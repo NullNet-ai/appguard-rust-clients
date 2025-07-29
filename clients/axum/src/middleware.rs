@@ -4,86 +4,54 @@ use std::sync::{Arc, Mutex};
 
 use axum::http::StatusCode;
 use axum::{body::Body, extract::Request, response::Response};
-use std::task::{Context, Poll};
+use nullnet_libappguard::appguard::AppGuardTcpResponse;
+use nullnet_libappguard::appguard_commands::FirewallPolicy;
+use std::task::Poll;
 use tower::{Layer, Service};
 
-use appguard_client_authentication::AuthHandler;
-use nullnet_libappguard::{
-    AppGuardFirewall, AppGuardGrpcInterface, AppGuardTcpResponse, FirewallPolicy,
-};
+use appguard_client_authentication::Context;
 
 use crate::conversions::{
     to_appguard_http_request, to_appguard_http_response, to_appguard_tcp_connection,
 };
 
 #[derive(Clone)]
-/// `AppGuard` client configuration.
-pub struct AppGuardConfig {
-    client: AppGuardGrpcInterface,
-    timeout: Option<u64>,
-    default_policy: FirewallPolicy,
-    auth: AuthHandler,
+/// `AppGuard` middleware.
+pub struct AppGuardMiddleware {
+    ctx: Context,
 }
 
-impl AppGuardConfig {
-    /// Create a new configuration for the client.
-    ///
-    /// # Arguments
-    ///
-    /// * `host` - Hostname of the `AppGuard` server.
-    /// * `port` - Port of the `AppGuard` server.
-    /// * `tls` - Whether traffic to the `AppGuard` server should be secured with TLS.
-    /// * `timeout` - Timeout for calls to the `AppGuard` server (milliseconds).
-    /// * `default_policy` - Default firewall policy to apply when the `AppGuard` server times out.
-    /// * `firewall` - Firewall expressions (infix notation).
+impl AppGuardMiddleware {
+    /// Create a new `AppGuard` middleware instance.
     #[must_use]
-    pub async fn new(
-        host: &'static str,
-        port: u16,
-        tls: bool,
-        timeout: Option<u64>,
-        default_policy: FirewallPolicy,
-        firewall: String,
-    ) -> Option<Self> {
-        let mut client = AppGuardGrpcInterface::new(host, port, tls).await.ok()?;
-        let auth = AuthHandler::new(client.clone()).await;
+    pub async fn new() -> Option<Self> {
+        let ctx = Context::new(String::from("Axum")).await.ok()?;
 
-        let token = auth.get_token().await;
-        client
-            .update_firewall(AppGuardFirewall { token, firewall })
-            .await
-            .ok()?;
-
-        Some(AppGuardConfig {
-            client,
-            timeout,
-            default_policy,
-            auth,
-        })
+        Some(AppGuardMiddleware { ctx })
     }
 }
 
 type LocalBoxFuture<T> = Pin<Box<dyn Future<Output = T> + Send + 'static>>;
 
-impl<S> Layer<S> for AppGuardConfig {
-    type Service = AppGuardMiddleware<S>;
+impl<S> Layer<S> for AppGuardMiddleware {
+    type Service = AppGuardMiddlewareImpl<S>;
 
     fn layer(&self, inner: S) -> Self::Service {
-        let config = self.to_owned();
-        AppGuardMiddleware {
-            config,
+        let middleware = self.to_owned();
+        AppGuardMiddlewareImpl {
+            middleware,
             next_service: Arc::new(Mutex::new(inner)),
         }
     }
 }
 
 #[derive(Clone)]
-pub struct AppGuardMiddleware<S> {
-    config: AppGuardConfig,
+pub struct AppGuardMiddlewareImpl<S> {
+    middleware: AppGuardMiddleware,
     next_service: Arc<Mutex<S>>,
 }
 
-impl<S> Service<Request> for AppGuardMiddleware<S>
+impl<S> Service<Request> for AppGuardMiddlewareImpl<S>
 where
     S: Service<Request, Response = Response> + Send + 'static,
     S::Future: Send + 'static,
@@ -92,28 +60,29 @@ where
     type Error = S::Error;
     type Future = LocalBoxFuture<Result<Self::Response, Self::Error>>;
 
-    fn poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+    fn poll_ready(&mut self, cx: &mut std::task::Context<'_>) -> Poll<Result<(), Self::Error>> {
         self.next_service.lock().unwrap().poll_ready(cx)
     }
 
     fn call(&mut self, req: Request) -> Self::Future {
-        let mut client = self.config.client.clone();
-        let timeout = self.config.timeout;
-        let default_policy = self.config.default_policy;
-        let auth = self.config.auth.clone();
+        let mut server = self.middleware.ctx.server.clone();
+        let ctx = self.middleware.ctx.clone();
         let next_service = self.next_service.clone();
 
         Box::pin(async move {
-            let token = auth.get_token().await;
+            let token = ctx.token_provider.get().await.unwrap_or_default();
+            let fw_defaults = *ctx.firewall_defaults.lock().await;
+            let timeout = fw_defaults.timeout;
+            let default_policy = FirewallPolicy::try_from(fw_defaults.policy).unwrap_or_default();
 
-            let Ok(AppGuardTcpResponse { tcp_info }) = client
+            let Ok(AppGuardTcpResponse { tcp_info }) = server
                 .handle_tcp_connection(timeout, to_appguard_tcp_connection(&req, token.clone()))
                 .await
             else {
                 return Ok(internal_server_error_response());
             };
 
-            let Ok(request_handler_res) = client
+            let Ok(request_handler_res) = server
                 .handle_http_request(
                     timeout,
                     default_policy,
@@ -133,7 +102,7 @@ where
 
             let resp: Response = fut.await?;
 
-            let Ok(response_handler_res) = client
+            let Ok(response_handler_res) = server
                 .handle_http_response(
                     timeout,
                     default_policy,

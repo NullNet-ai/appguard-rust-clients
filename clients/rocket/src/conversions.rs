@@ -1,12 +1,11 @@
-use std::collections::HashMap;
-use std::net::SocketAddr;
-
-use nullnet_libappguard::{
+use nullnet_libappguard::appguard::{
     AppGuardHttpRequest, AppGuardHttpResponse, AppGuardTcpConnection, AppGuardTcpInfo,
 };
 use qstring::QString;
 use rocket::http::HeaderMap;
 use rocket::{Request, Response};
+use std::collections::HashMap;
+use std::net::SocketAddr;
 
 pub(crate) fn to_appguard_tcp_connection(req: &Request, token: String) -> AppGuardTcpConnection {
     let source_ip = req.client_ip().map(|ip| ip.to_string());
