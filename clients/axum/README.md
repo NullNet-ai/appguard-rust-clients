@@ -36,3 +36,10 @@ async fn main() -> std::io::Result<()> {
 ```
 
 A complete working example can be found [here](https://github.com/NullNet-ai/appguard-rust-clients/blob/main/clients/axum/sample/src/main.rs).
+
+### Environment variables
+
+The following environment variables must be set for the client to work:
+- `CONTROL_SERVICE_ADDR`: AppGuard server's IP address
+- `CONTROL_SERVICE_PORT`: AppGuard server's port
+- `INSTALLATION_CODE`: installation code for this client
