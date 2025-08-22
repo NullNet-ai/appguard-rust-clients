@@ -34,3 +34,5 @@ async fn main() -> std::io::Result<()> {
         axum::serve(listener, app).await.unwrap();
 }
 ```
+
+A complete working example can be found [here](https://github.com/NullNet-ai/appguard-rust-clients/blob/main/clients/axum/sample/src/main.rs).

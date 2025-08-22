@@ -38,3 +38,5 @@ async fn rocket() -> _ {
         .mount(...)
 }
 ```
+
+A complete working example can be found [here](https://github.com/NullNet-ai/appguard-rust-clients/blob/main/clients/rocket/sample/src/main.rs).

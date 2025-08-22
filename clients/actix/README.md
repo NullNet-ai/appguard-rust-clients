@@ -31,3 +31,5 @@ async fn main() -> std::io::Result<()> {
         .await
 }
 ```
+
+A complete working example can be found [here](https://github.com/NullNet-ai/appguard-rust-clients/blob/main/clients/actix/sample/src/main.rs).
