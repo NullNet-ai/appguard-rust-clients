@@ -34,4 +34,3 @@ async fn main() -> std::io::Result<()> {
         axum::serve(listener, app).await.unwrap();
 }
 ```
-
