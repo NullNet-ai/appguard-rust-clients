@@ -2,8 +2,8 @@ use nullnet_libappguard::appguard_commands::{FirewallDefaults, FirewallPolicy};
 use std::collections::{BTreeMap, HashMap};
 
 pub struct Cache {
-    pub active: bool,
-    pub entries: HashMap<CacheKey, FirewallPolicy>,
+    active: bool,
+    entries: HashMap<CacheKey, FirewallPolicy>,
 }
 
 impl Cache {
