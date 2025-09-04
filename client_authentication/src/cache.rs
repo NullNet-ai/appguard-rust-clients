@@ -30,7 +30,7 @@ impl Cache {
 }
 
 /// Data structure used by clients to create a cache entry for each request.
-#[derive(PartialEq, Eq, Hash)]
+#[derive(PartialEq, Eq, Hash, Clone)]
 pub struct CacheKey {
     pub original_url: String,
     pub method: String,

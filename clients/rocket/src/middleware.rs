@@ -3,7 +3,7 @@ use rocket::http::Status;
 use rocket::{Data, Request, Response};
 
 use crate::conversions::{
-    to_appguard_http_request, to_appguard_http_response, to_appguard_tcp_connection,
+    to_appguard_http_request, to_appguard_http_response, to_appguard_tcp_connection, to_cache_key,
 };
 use appguard_client_authentication::Context;
 use nullnet_libappguard::appguard::AppGuardTcpResponse;
@@ -34,6 +34,16 @@ impl Fairing for AppGuardMiddleware {
     }
 
     async fn on_request(&self, req: &mut Request<'_>, _data: &mut Data<'_>) {
+        // first check cache
+        let cache_key = to_cache_key(req);
+        if let Some(policy) = self.ctx.cache.lock().await.get(&cache_key) {
+            if *policy == FirewallPolicy::Deny {
+                panic!("Unauthorized");
+            } else {
+                return;
+            }
+        }
+
         let mut server = self.ctx.server.clone();
         let token = self.ctx.token_provider.get().await.unwrap_or_default();
         let fw_defaults = *self.ctx.firewall_defaults.lock().await;
@@ -57,10 +67,26 @@ impl Fairing for AppGuardMiddleware {
             .expect("Internal server error");
 
         let policy = FirewallPolicy::try_from(request_handler_res.policy).unwrap_or_default();
-        assert_ne!(policy, FirewallPolicy::Deny, "Unauthorized");
+        if policy == FirewallPolicy::Deny {
+            self.ctx
+                .cache
+                .lock()
+                .await
+                .insert(cache_key, FirewallPolicy::Deny);
+            panic!("Unauthorized");
+        }
     }
 
     async fn on_response<'r>(&self, req: &'r Request<'_>, resp: &mut Response<'r>) {
+        // first check cache
+        let cache_key = to_cache_key(req);
+        if let Some(policy) = self.ctx.cache.lock().await.get(&cache_key) {
+            if *policy == FirewallPolicy::Deny {
+                *resp = unauthorized_response();
+            }
+            return;
+        }
+
         let mut server = self.ctx.server.clone();
         let token = self.ctx.token_provider.get().await.unwrap_or_default();
         let fw_defaults = *self.ctx.firewall_defaults.lock().await;
@@ -84,8 +110,8 @@ impl Fairing for AppGuardMiddleware {
         let policy = FirewallPolicy::try_from(response_handler_res.policy).unwrap_or_default();
         if policy == FirewallPolicy::Deny {
             *resp = unauthorized_response();
-            return;
         }
+        self.ctx.cache.lock().await.insert(cache_key, policy);
     }
 }
 
