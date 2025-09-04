@@ -1,11 +1,10 @@
-use crate::cache_key::CacheKey;
+use crate::cache::Cache;
 use crate::control_channel::start_control_stream;
 use crate::storage::{Secret, Storage};
 use crate::token_provider::TokenProvider;
 use nullnet_libappguard::AppGuardGrpcInterface;
-use nullnet_libappguard::appguard_commands::{FirewallDefaults, FirewallPolicy};
+use nullnet_libappguard::appguard_commands::FirewallDefaults;
 use nullnet_liberror::{Error, ErrorHandler, Location, location};
-use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
@@ -14,7 +13,7 @@ pub struct Context {
     pub token_provider: TokenProvider,
     pub server: AppGuardGrpcInterface,
     pub firewall_defaults: Arc<Mutex<FirewallDefaults>>,
-    pub cache: Arc<Mutex<HashMap<CacheKey, FirewallPolicy>>>,
+    pub cache: Arc<Mutex<Cache>>,
 }
 
 impl Context {
@@ -46,7 +45,7 @@ impl Context {
             token_provider: token_provider.clone(),
             server: server.clone(),
             firewall_defaults: Arc::new(Mutex::new(FirewallDefaults::default())),
-            cache: Arc::new(Mutex::new(HashMap::new())),
+            cache: Arc::new(Mutex::new(Cache::new(FirewallDefaults::default()))),
         };
 
         start_control_stream(ctx.clone(), installation_code, r#type).await;
@@ -62,6 +61,7 @@ impl Context {
             .await
             .handle_err(location!())?;
         *ctx.firewall_defaults.lock().await = firewall_defaults;
+        *ctx.cache.lock().await = Cache::new(firewall_defaults);
 
         Ok(ctx)
     }

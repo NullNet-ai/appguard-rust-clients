@@ -83,7 +83,7 @@ where
                     Ok(req.into_response(HttpResponse::Unauthorized().body("Unauthorized")))
                 } else {
                     next_service.call(req).await
-                }
+                };
             }
 
             let token = ctx.token_provider.get().await.unwrap_or_default();
@@ -108,7 +108,10 @@ where
 
             let policy = FirewallPolicy::try_from(request_handler_res.policy).unwrap_or_default();
             if policy == FirewallPolicy::Deny {
-                ctx.cache.lock().await.insert(cache_key, FirewallPolicy::Deny);
+                ctx.cache
+                    .lock()
+                    .await
+                    .insert(cache_key, FirewallPolicy::Deny);
                 return Ok(req.into_response(HttpResponse::Unauthorized().body("Unauthorized")));
             }
 
@@ -127,11 +130,17 @@ where
 
             let policy = FirewallPolicy::try_from(response_handler_res.policy).unwrap_or_default();
             if policy == FirewallPolicy::Deny {
-                ctx.cache.lock().await.insert(cache_key, FirewallPolicy::Deny);
+                ctx.cache
+                    .lock()
+                    .await
+                    .insert(cache_key, FirewallPolicy::Deny);
                 return Ok(resp.into_response(HttpResponse::Unauthorized().body("Unauthorized")));
             }
 
-            ctx.cache.lock().await.insert(cache_key, FirewallPolicy::Allow);
+            ctx.cache
+                .lock()
+                .await
+                .insert(cache_key, FirewallPolicy::Allow);
             Ok(resp)
         })
     }

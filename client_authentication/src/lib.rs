@@ -1,7 +1,7 @@
-mod cache_key;
+mod cache;
 mod context;
 mod control_channel;
 mod storage;
 mod token_provider;
-pub use cache_key::CacheKey;
+pub use cache::CacheKey;
 pub use context::Context;
