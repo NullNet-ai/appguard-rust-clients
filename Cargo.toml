@@ -12,5 +12,5 @@ members = [
 
 [workspace.dependencies]
 nullnet-libappguard = "0.1.10"
-appguard-client-authentication = "0.2.0"
+appguard-client-authentication = { path = "client_authentication" }
 env_logger = "0.11.8"

@@ -1,9 +1,11 @@
+use crate::cache_key::CacheKey;
 use crate::control_channel::start_control_stream;
 use crate::storage::{Secret, Storage};
 use crate::token_provider::TokenProvider;
 use nullnet_libappguard::AppGuardGrpcInterface;
-use nullnet_libappguard::appguard_commands::FirewallDefaults;
+use nullnet_libappguard::appguard_commands::{FirewallDefaults, FirewallPolicy};
 use nullnet_liberror::{Error, ErrorHandler, Location, location};
+use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
@@ -12,6 +14,7 @@ pub struct Context {
     pub token_provider: TokenProvider,
     pub server: AppGuardGrpcInterface,
     pub firewall_defaults: Arc<Mutex<FirewallDefaults>>,
+    pub cache: Arc<Mutex<HashMap<CacheKey, FirewallPolicy>>>,
 }
 
 impl Context {
@@ -43,6 +46,7 @@ impl Context {
             token_provider: token_provider.clone(),
             server: server.clone(),
             firewall_defaults: Arc::new(Mutex::new(FirewallDefaults::default())),
+            cache: Arc::new(Mutex::new(HashMap::new())),
         };
 
         start_control_stream(ctx.clone(), installation_code, r#type).await;

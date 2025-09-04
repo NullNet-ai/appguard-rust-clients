@@ -1,5 +1,6 @@
 use crate::{context::Context, control_channel::command::ExecutableCommand};
 use nullnet_libappguard::appguard_commands::FirewallDefaults;
+use std::collections::HashMap;
 
 pub struct SetFirewallDefaultsCommand {
     context: Context,
@@ -16,6 +17,7 @@ impl ExecutableCommand for SetFirewallDefaultsCommand {
     async fn execute(self) -> Result<(), nullnet_liberror::Error> {
         log::debug!("Received SetFirewallDefaultsCommand");
         *self.context.firewall_defaults.lock().await = self.defaults;
+        *self.context.cache.lock().await = HashMap::new();
         Ok(())
     }
 }
