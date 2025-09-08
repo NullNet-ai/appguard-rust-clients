@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use actix_web::dev::{ServiceRequest, ServiceResponse};
 use actix_web::http::header::HeaderMap;
+use appguard_client_authentication::CacheKey;
 use nullnet_libappguard::appguard::{
     AppGuardHttpRequest, AppGuardHttpResponse, AppGuardTcpConnection, AppGuardTcpInfo,
 };
@@ -11,10 +12,7 @@ pub(crate) fn to_appguard_tcp_connection(
     req: &ServiceRequest,
     token: String,
 ) -> AppGuardTcpConnection {
-    let source_ip = req
-        .connection_info()
-        .realip_remote_addr()
-        .map(std::string::ToString::to_string);
+    let source_ip = get_source_ip(req);
     let source_port = req.peer_addr().map(|s| u32::from(s.port()));
     let destination = req.app_config().local_addr();
     AppGuardTcpConnection {
@@ -62,9 +60,39 @@ pub(crate) fn to_appguard_http_response<B>(
     }
 }
 
+pub(crate) fn to_cache_key(req: &ServiceRequest) -> CacheKey {
+    let headers = convert_headers(req.headers());
+    let query: HashMap<String, String> = QString::from(req.query_string()).into_iter().collect();
+    let source_ip = get_source_ip(req);
+    let user_agent = headers
+        .get("user-agent")
+        .unwrap_or(&String::new())
+        .to_string();
+
+    CacheKey {
+        original_url: req.path().to_string(),
+        user_agent,
+        method: req.method().to_string(),
+        body: String::new(),
+        query: query.into_iter().collect(),
+        source_ip: source_ip.unwrap_or_default(),
+    }
+}
+
 fn convert_headers(headers: &HeaderMap) -> HashMap<String, String> {
     headers
         .iter()
-        .map(|(k, v)| (k.to_string(), v.to_str().unwrap_or_default().to_string()))
+        .map(|(k, v)| {
+            (
+                k.to_string().to_ascii_lowercase(),
+                v.to_str().unwrap_or_default().to_string(),
+            )
+        })
         .collect()
+}
+
+fn get_source_ip(req: &ServiceRequest) -> Option<String> {
+    req.connection_info()
+        .realip_remote_addr()
+        .map(std::string::ToString::to_string)
 }

@@ -4,7 +4,7 @@ use std::pin::Pin;
 use std::rc::Rc;
 
 use crate::conversions::{
-    to_appguard_http_request, to_appguard_http_response, to_appguard_tcp_connection,
+    to_appguard_http_request, to_appguard_http_response, to_appguard_tcp_connection, to_cache_key,
 };
 use actix_web::{
     dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform},
@@ -76,6 +76,16 @@ where
         let next_service = self.next_service.clone();
 
         Box::pin(async move {
+            // first check cache
+            let cache_key = to_cache_key(&req);
+            if let Some(policy) = ctx.cache.lock().await.get(&cache_key) {
+                return if *policy == FirewallPolicy::Deny {
+                    Ok(req.into_response(HttpResponse::Unauthorized().body("Unauthorized")))
+                } else {
+                    next_service.call(req).await
+                };
+            }
+
             let token = ctx.token_provider.get().await.unwrap_or_default();
             let fw_defaults = *ctx.firewall_defaults.lock().await;
             let timeout = fw_defaults.timeout;
@@ -98,6 +108,10 @@ where
 
             let policy = FirewallPolicy::try_from(request_handler_res.policy).unwrap_or_default();
             if policy == FirewallPolicy::Deny {
+                ctx.cache
+                    .lock()
+                    .await
+                    .insert(cache_key, FirewallPolicy::Deny);
                 return Ok(req.into_response(HttpResponse::Unauthorized().body("Unauthorized")));
             }
 
@@ -116,9 +130,17 @@ where
 
             let policy = FirewallPolicy::try_from(response_handler_res.policy).unwrap_or_default();
             if policy == FirewallPolicy::Deny {
+                ctx.cache
+                    .lock()
+                    .await
+                    .insert(cache_key, FirewallPolicy::Deny);
                 return Ok(resp.into_response(HttpResponse::Unauthorized().body("Unauthorized")));
             }
 
+            ctx.cache
+                .lock()
+                .await
+                .insert(cache_key, FirewallPolicy::Allow);
             Ok(resp)
         })
     }

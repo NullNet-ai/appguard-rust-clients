@@ -1,17 +1,15 @@
+use appguard_client_authentication::CacheKey;
 use axum::extract::Request;
 use axum::http::{HeaderMap, Response};
 use nullnet_libappguard::appguard::{
     AppGuardHttpRequest, AppGuardHttpResponse, AppGuardTcpConnection, AppGuardTcpInfo,
 };
 use qstring::QString;
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::net::SocketAddr;
 
 pub(crate) fn to_appguard_tcp_connection(req: &Request, token: String) -> AppGuardTcpConnection {
-    let source = req
-        .extensions()
-        .get::<axum::extract::ConnectInfo<SocketAddr>>()
-        .map(|c| c.0);
+    let source = get_source_socket(req);
 
     let destination: Option<SocketAddr> = None;
 
@@ -68,9 +66,41 @@ pub(crate) fn to_appguard_http_response<B>(
     }
 }
 
+pub(crate) fn to_cache_key(req: &Request) -> CacheKey {
+    let headers = convert_headers(req.headers());
+    let query: BTreeMap<String, String> = QString::from(req.uri().query().unwrap_or_default())
+        .into_iter()
+        .collect();
+    let source_ip = get_source_socket(req).map(|s| s.ip().to_string());
+    let user_agent = headers
+        .get("user-agent")
+        .unwrap_or(&String::new())
+        .to_string();
+
+    CacheKey {
+        original_url: req.uri().path().to_string(),
+        user_agent,
+        method: req.method().to_string(),
+        body: String::new(),
+        query,
+        source_ip: source_ip.unwrap_or_default(),
+    }
+}
+
 fn convert_headers(headers: &HeaderMap) -> HashMap<String, String> {
     headers
         .iter()
-        .map(|(k, v)| (k.to_string(), v.to_str().unwrap_or_default().to_string()))
+        .map(|(k, v)| {
+            (
+                k.to_string().to_ascii_lowercase(),
+                v.to_str().unwrap_or_default().to_string(),
+            )
+        })
         .collect()
+}
+
+fn get_source_socket(req: &Request) -> Option<SocketAddr> {
+    req.extensions()
+        .get::<axum::extract::ConnectInfo<SocketAddr>>()
+        .map(|c| c.0)
 }

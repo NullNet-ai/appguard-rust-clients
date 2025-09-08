@@ -12,7 +12,7 @@ use tower::{Layer, Service};
 use appguard_client_authentication::Context;
 
 use crate::conversions::{
-    to_appguard_http_request, to_appguard_http_response, to_appguard_tcp_connection,
+    to_appguard_http_request, to_appguard_http_response, to_appguard_tcp_connection, to_cache_key,
 };
 
 #[derive(Clone)]
@@ -70,6 +70,17 @@ where
         let next_service = self.next_service.clone();
 
         Box::pin(async move {
+            // first check cache
+            let cache_key = to_cache_key(&req);
+            if let Some(policy) = ctx.cache.lock().await.get(&cache_key) {
+                return if *policy == FirewallPolicy::Deny {
+                    Ok(unauthorized_response())
+                } else {
+                    let fut = next_service.lock().unwrap().call(req);
+                    fut.await
+                };
+            }
+
             let token = ctx.token_provider.get().await.unwrap_or_default();
             let fw_defaults = *ctx.firewall_defaults.lock().await;
             let timeout = fw_defaults.timeout;
@@ -95,6 +106,10 @@ where
 
             let policy = FirewallPolicy::try_from(request_handler_res.policy).unwrap_or_default();
             if policy == FirewallPolicy::Deny {
+                ctx.cache
+                    .lock()
+                    .await
+                    .insert(cache_key, FirewallPolicy::Deny);
                 return Ok(unauthorized_response());
             }
 
@@ -115,9 +130,17 @@ where
 
             let policy = FirewallPolicy::try_from(response_handler_res.policy).unwrap_or_default();
             if policy == FirewallPolicy::Deny {
+                ctx.cache
+                    .lock()
+                    .await
+                    .insert(cache_key, FirewallPolicy::Deny);
                 return Ok(unauthorized_response());
             }
 
+            ctx.cache
+                .lock()
+                .await
+                .insert(cache_key, FirewallPolicy::Allow);
             Ok(resp)
         })
     }
