@@ -73,10 +73,14 @@ pub(crate) fn to_cache_key(req: &Request) -> CacheKey {
         BTreeMap::new()
     };
     let source_ip = req.client_ip().map(|ip| ip.to_string());
+    let user_agent = headers
+        .get("user-agent")
+        .unwrap_or(&String::new())
+        .to_string();
 
     CacheKey {
         original_url: req.uri().path().to_string(),
-        headers: headers.into_iter().collect(),
+        user_agent,
         method: req.method().to_string(),
         body: String::new(),
         query,
@@ -87,6 +91,11 @@ pub(crate) fn to_cache_key(req: &Request) -> CacheKey {
 fn convert_headers(headers: &HeaderMap) -> HashMap<String, String> {
     headers
         .iter()
-        .map(|h| (h.name().to_string(), h.value.to_string()))
+        .map(|h| {
+            (
+                h.name().to_string().to_ascii_lowercase(),
+                h.value.to_string(),
+            )
+        })
         .collect()
 }

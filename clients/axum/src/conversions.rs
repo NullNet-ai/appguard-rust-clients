@@ -72,10 +72,14 @@ pub(crate) fn to_cache_key(req: &Request) -> CacheKey {
         .into_iter()
         .collect();
     let source_ip = get_source_socket(req).map(|s| s.ip().to_string());
+    let user_agent = headers
+        .get("user-agent")
+        .unwrap_or(&String::new())
+        .to_string();
 
     CacheKey {
         original_url: req.uri().path().to_string(),
-        headers: headers.into_iter().collect(),
+        user_agent,
         method: req.method().to_string(),
         body: String::new(),
         query,
@@ -86,7 +90,12 @@ pub(crate) fn to_cache_key(req: &Request) -> CacheKey {
 fn convert_headers(headers: &HeaderMap) -> HashMap<String, String> {
     headers
         .iter()
-        .map(|(k, v)| (k.to_string(), v.to_str().unwrap_or_default().to_string()))
+        .map(|(k, v)| {
+            (
+                k.to_string().to_ascii_lowercase(),
+                v.to_str().unwrap_or_default().to_string(),
+            )
+        })
         .collect()
 }
 

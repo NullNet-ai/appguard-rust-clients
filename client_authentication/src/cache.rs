@@ -35,7 +35,7 @@ pub struct CacheKey {
     pub original_url: String,
     pub method: String,
     pub query: BTreeMap<String, String>,
-    pub headers: BTreeMap<String, String>,
+    pub user_agent: String,
     pub body: String,
     pub source_ip: String,
 }
