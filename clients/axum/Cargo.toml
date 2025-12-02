@@ -12,6 +12,6 @@ categories = ["network-programming"]
 nullnet-libappguard.workspace = true
 appguard-client-authentication.workspace = true
 axum = "0.7.9"
-axum-extra = { version = "0.10.0", features = ["scheme"] }
+axum-extra = { version = "0.12.2", features = ["scheme"] }
 tower = "0.5.2"
 qstring = "0.7.2"
