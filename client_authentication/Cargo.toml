@@ -11,7 +11,7 @@ categories = ["network-programming"]
 [dependencies]
 nullnet-libappguard.workspace = true
 nullnet-liberror = "0.1.1"
-tokio = { version = "1.43.0", features = ["fs"] }
+tokio = { version = "1.48.0", features = ["fs"] }
 log = "0.4.26"
 serde = { version = "1.0.219", features = ["derive"] }
 dirs = "6.0.0"
