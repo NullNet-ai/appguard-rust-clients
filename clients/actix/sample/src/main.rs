@@ -1,37 +1,36 @@
-use actix_web::{get, web, App, HttpResponse, HttpServer, Responder};
+use actix_web::{web, App, HttpResponse, HttpServer, Responder};
 
-use appguard_actix::AppGuardMiddleware;
+const FILESERVER: &str = "fs.color.com";
+const WEBSERVER: &str = "0.0.0.0";
 
-#[cfg(debug_assertions)]
-const HOST: &str = "localhost";
-#[cfg(not(debug_assertions))]
-const HOST: &str = "appguard";
 
-#[get("/hello")]
-async fn hello() -> impl Responder {
-    HttpResponse::Ok().body("Hello!")
-}
-
-async fn not_found() -> impl Responder {
-    HttpResponse::NotFound().body("404 - Not Found")
+async fn remote_color() -> impl Responder {
+    let remote = format!("http://{FILESERVER}:8080");
+    let color = reqwest::get(remote)
+        .await.unwrap().text().await.unwrap();
+    let body = format!("<!DOCTYPE html>
+    <html>
+        <body style=\"background:{color};display:flex;height:100vh;align-items:center;margin:0;\">
+            <div align=\"center\" style=\"background:#ffffff55;color:#000000;overflow:auto;width:100vw;margin:0 auto;\">
+                <h1><i>{color}</i></h1>
+            </div>
+        </body>
+    </html>");
+    HttpResponse::Ok().body(body)
 }
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     env_logger::init();
-    // let logger_config = LoggerConfig::new(true, false, None, vec!["actix_sample"]);
-    // Logger::init(logger_config);
-
-    let middleware = AppGuardMiddleware::new().await.unwrap();
+    
+    println!("Running on {WEBSERVER}:3001");
+    println!("Interacting with file server at {FILESERVER}:8080");
 
     HttpServer::new(move || {
         App::new()
-            .wrap(middleware.clone())
-            .service(hello)
-            .service(actix_files::Files::new("/", "./static/formMD").index_file("index.html"))
-            .default_service(web::get().to(not_found))
+        .default_service(web::get().to(remote_color))
     })
-    .bind((HOST, 3001))?
+    .bind((WEBSERVER, 3001))?
     .run()
     .await
 }
