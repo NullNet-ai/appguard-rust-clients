@@ -1,3 +1,6 @@
+# Build:  docker build -f Dockerfile.fileserver -t fileserver .
+# Run:    docker run --network none fileserver
+
 FROM docker.io/svenstaro/miniserve:latest
 
 COPY color /data/color

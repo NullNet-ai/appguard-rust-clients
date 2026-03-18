@@ -1,3 +1,6 @@
+# Build:  docker build -t actix-sample .
+# Run:    docker run --network none actix-sample
+
 # Build stage
 FROM rust:1.86-slim AS builder
 
