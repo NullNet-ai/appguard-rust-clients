@@ -4,11 +4,9 @@ const FILESERVER: &str = "fs.color.com";
 const FILESERVER_PORT: u16 = 8080;
 const WEBSERVER: &str = "0.0.0.0";
 
-
 async fn remote_color() -> impl Responder {
     let remote = format!("http://{FILESERVER}:{FILESERVER_PORT}");
-    let color = reqwest::get(remote)
-        .await.unwrap().text().await.unwrap();
+    let color = reqwest::get(remote).await.unwrap().text().await.unwrap();
     let body = format!("<!DOCTYPE html>
     <html>
         <body style=\"background:{color};display:flex;height:100vh;align-items:center;margin:0;\">
@@ -23,15 +21,12 @@ async fn remote_color() -> impl Responder {
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     env_logger::init();
-    
+
     println!("Running on {WEBSERVER}:3001");
     println!("Interacting with file server at {FILESERVER}:{FILESERVER_PORT}");
 
-    HttpServer::new(move || {
-        App::new()
-        .default_service(web::get().to(remote_color))
-    })
-    .bind((WEBSERVER, 3001))?
-    .run()
-    .await
+    HttpServer::new(move || App::new().default_service(web::get().to(remote_color)))
+        .bind((WEBSERVER, 3001))?
+        .run()
+        .await
 }
