@@ -1,0 +1,7 @@
+FROM docker.io/svenstaro/miniserve:latest
+
+COPY color /data/color
+
+# EXPOSE 8080
+
+CMD ["/data/color", "-p", "8080"]
