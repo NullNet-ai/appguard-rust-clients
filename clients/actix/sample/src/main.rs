@@ -1,6 +1,6 @@
 use actix_web::{web, App, HttpResponse, HttpServer, Responder};
 
-const FILESERVER: &str = "fs.color.com";
+const FILESERVER: &str = "fs.color.dnamicro.net";
 const FILESERVER_PORT: u16 = 8080;
 const WEBSERVER: &str = "0.0.0.0";
 
