@@ -8,6 +8,7 @@ members = [
     "clients/axum/sample",
     "clients/rocket",
     "clients/rocket/sample",
+    "timestamp_server",
 ]
 
 [workspace.dependencies]
