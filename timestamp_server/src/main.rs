@@ -1,17 +1,38 @@
-// Raw-TCP test server: listens on TCP 5555 and writes the current Unix
-// timestamp (seconds) to every connecting client, then closes.
+// Raw-TCP test server: listens on TCP 5555. Connections are long-lived: for
+// every line the client sends, the server replies with the current UTC
+// timestamp. Loops until the client disconnects.
 //
 // Run:    cargo run -p timestamp_server
-// Test:   nc 127.0.0.1 5555
+// Test:   nc 127.0.0.1 5555   (then type ENTER repeatedly)
 
-use std::io::Write;
+use std::io::{BufRead, BufReader, Write};
 use std::net::{TcpListener, TcpStream};
 
 use chrono::Utc;
 
-fn handle(mut stream: TcpStream) {
-    let now = Utc::now().format("%Y-%m-%d %H:%M:%S UTC");
-    let _ = writeln!(stream, "{}", now);
+fn handle(stream: TcpStream) {
+    let peer = stream.peer_addr().ok();
+    let mut writer = stream.try_clone().expect("clone stream");
+    let mut reader = BufReader::new(stream);
+    let mut line = String::new();
+
+    loop {
+        line.clear();
+        match reader.read_line(&mut line) {
+            Ok(0) => break, // EOF
+            Ok(_) => {
+                let now = Utc::now().format("%Y-%m-%d %H:%M:%S UTC");
+                if writeln!(writer, "{}", now).is_err() {
+                    break;
+                }
+            }
+            Err(_) => break,
+        }
+    }
+
+    if let Some(p) = peer {
+        println!("disconnected {p}");
+    }
 }
 
 fn main() {
@@ -22,13 +43,10 @@ fn main() {
     for stream in listener.incoming() {
         match stream {
             Ok(s) => {
-                let peer = s.peer_addr().ok();
-                std::thread::spawn(move || {
-                    handle(s);
-                    if let Some(p) = peer {
-                        println!("served {p}");
-                    }
-                });
+                if let Ok(p) = s.peer_addr() {
+                    println!("connected {p}");
+                }
+                std::thread::spawn(move || handle(s));
             }
             Err(e) => eprintln!("accept error: {e}"),
         }

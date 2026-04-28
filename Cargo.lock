@@ -217,6 +217,7 @@ dependencies = [
  "appguard-actix",
  "env_logger",
  "reqwest",
+ "tokio",
 ]
 
 [[package]]
