@@ -24,4 +24,4 @@ COPY --from=builder /app/target/release/actix_sample /usr/local/bin/actix_sample
 
 # EXPOSE 3001
 
-CMD ["actix_sample"]
+CMD ["sh", "-c", "echo '192.0.2.5 ts.color.com' >> /etc/hosts && exec actix_sample"]

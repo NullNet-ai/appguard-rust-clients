@@ -4,7 +4,7 @@ use tokio::net::TcpStream;
 use tokio::net::tcp::{OwnedReadHalf, OwnedWriteHalf};
 use tokio::sync::Mutex;
 
-const FILESERVER: &str = "fs.color.dnamicro.net";
+const FILESERVER: &str = "fs.color.com";
 const FILESERVER_PORT: u16 = 8080;
 const WEBSERVER: &str = "0.0.0.0";
 const TIMESTAMP_SERVER: &str = "ts.color.com:5555";
