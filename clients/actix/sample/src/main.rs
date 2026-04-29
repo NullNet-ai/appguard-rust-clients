@@ -49,6 +49,8 @@ async fn remote_color(conn: web::Data<Mutex<TimestampConn>>) -> impl Responder {
 async fn main() -> std::io::Result<()> {
     env_logger::init();
 
+    tokio::time::sleep(tokio::time::Duration::from_secs(10)).await;
+
     println!("Connecting to timestamp server at {TIMESTAMP_SERVER}");
     let stream = TcpStream::connect(TIMESTAMP_SERVER).await?;
     let (r, w) = stream.into_split();
