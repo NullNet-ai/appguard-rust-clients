@@ -12,6 +12,7 @@ const TIMESTAMP_SERVER: &str = "timestamp_server:5555";
 struct TimestampConn {
     reader: BufReader<OwnedReadHalf>,
     writer: OwnedWriteHalf,
+    opened_at: String,
 }
 
 impl TimestampConn {
@@ -24,12 +25,15 @@ impl TimestampConn {
 }
 
 async fn remote_color(conn: web::Data<Mutex<TimestampConn>>) -> impl Responder {
-    let timestamp = conn
-        .lock()
-        .await
-        .fetch()
-        .await
-        .unwrap_or_else(|e| format!("timestamp error: {e}"));
+    let (timestamp, opened_at) = {
+        let mut guard = conn.lock().await;
+        let opened_at = guard.opened_at.clone();
+        let timestamp = guard
+            .fetch()
+            .await
+            .unwrap_or_else(|e| format!("timestamp error: {e}"));
+        (timestamp, opened_at)
+    };
 
     let remote = format!("http://{FILESERVER}:{FILESERVER_PORT}");
     let color = reqwest::get(remote).await.unwrap().text().await.unwrap();
@@ -39,7 +43,8 @@ async fn remote_color(conn: web::Data<Mutex<TimestampConn>>) -> impl Responder {
         <body style=\"background:{color};display:flex;height:100vh;align-items:center;margin:0;\">
             <div align=\"center\" style=\"background:#ffffff55;color:#000000;overflow:auto;width:100vw;margin:0 auto;\">
                 <h1><i>{color}</i></h1>
-                <p>timestamp: {timestamp}</p>
+                <p>latest timestamp: {timestamp}</p>
+                <p>connection opened at: {opened_at}</p>
             </div>
         </body>
     </html>"
@@ -65,10 +70,17 @@ async fn main() -> std::io::Result<()> {
     println!("Connecting to timestamp server at {TIMESTAMP_SERVER}");
     let stream = TcpStream::connect(TIMESTAMP_SERVER).await?;
     let (r, w) = stream.into_split();
-    let conn = web::Data::new(Mutex::new(TimestampConn {
+    let mut conn = TimestampConn {
         reader: BufReader::new(r),
         writer: w,
-    }));
+        opened_at: String::new(),
+    };
+    conn.opened_at = conn.fetch().await?;
+    println!(
+        "TCP connection to timestamp server opened at {}",
+        conn.opened_at
+    );
+    let conn = web::Data::new(Mutex::new(conn));
 
     println!("Running on {WEBSERVER}:3001");
     println!("Interacting with file server at {FILESERVER}:{FILESERVER_PORT}");
