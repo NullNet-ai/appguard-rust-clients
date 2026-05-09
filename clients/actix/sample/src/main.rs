@@ -4,10 +4,10 @@ use tokio::net::tcp::{OwnedReadHalf, OwnedWriteHalf};
 use tokio::net::TcpStream;
 use tokio::sync::Mutex;
 
-const FILESERVER: &str = "fs.color.com";
+const FILESERVER: &str = "fs.color.dnamicro.net";
 const FILESERVER_PORT: u16 = 8080;
 const WEBSERVER: &str = "0.0.0.0";
-const TIMESTAMP_SERVER: &str = "timestamp_server:5555";
+const TIMESTAMP_SERVER: &str = "timestamp_server.color.dnamicro.net:5555";
 
 struct TimestampConn {
     reader: BufReader<OwnedReadHalf>,
