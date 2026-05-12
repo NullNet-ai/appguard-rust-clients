@@ -1,5 +1,7 @@
 # Build:  docker build -t actix-sample .
-# Run:    docker run --network none actix-sample
+# Run:    docker run --network none \
+#             -v /root/nullnet/members/nullnet-server/graph.dot:/graph.dot:ro \
+#             actix-sample
 
 # Build stage
 FROM rust:1.86-slim AS builder
@@ -18,7 +20,7 @@ RUN cargo build --release -p actix_sample
 # Runtime stage
 FROM debian:bookworm-slim
 
-RUN apt-get update && apt-get install -y ca-certificates libssl3 && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y ca-certificates libssl3 graphviz && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /app/target/release/actix_sample /usr/local/bin/actix_sample
 
