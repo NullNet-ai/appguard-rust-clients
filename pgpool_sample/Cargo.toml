@@ -1,0 +1,16 @@
+[package]
+name = "pgpool_sample"
+version = "0.1.0"
+publish = false
+edition = "2021"
+
+[dependencies]
+sqlx = { version = "0.8", default-features = false, features = [
+    "runtime-tokio-rustls",
+    "postgres",
+    "chrono",
+] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "time", "signal", "sync"] }
+chrono = "0.4"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }

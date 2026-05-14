@@ -9,6 +9,7 @@ members = [
     "clients/rocket",
     "clients/rocket/sample",
     "timestamp_server",
+    "pgpool_sample",
 ]
 
 [workspace.dependencies]
