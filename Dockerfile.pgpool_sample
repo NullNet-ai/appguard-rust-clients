@@ -2,7 +2,7 @@
 # Run:    docker run --rm -e DATABASE_URL=postgresql://admin:admin@timescale.color.dnamicro.net:5432/forms pgpool_sample
 
 # Build stage
-FROM rust:1.86-slim AS builder
+FROM rust:1.88-slim AS builder
 
 WORKDIR /app
 
