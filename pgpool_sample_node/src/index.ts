@@ -36,6 +36,14 @@ function elapsedMs(start: bigint): number {
   return Number(process.hrtime.bigint() - start) / 1_000_000;
 }
 
+const drizzleLogger = {
+  logQuery(query: string, params: unknown[]) {
+    const sql = query.replace(/\s+/g, " ").trim();
+    if (sql.includes("time_bucket('1 minute', time) AS bucket")) return;
+    log("info", "query", { sql, params });
+  },
+};
+
 function redactUrl(url: string): string {
   const schemeEnd = url.indexOf("://");
   if (schemeEnd < 0) return url;
@@ -133,7 +141,7 @@ async function runProbeRound(
     const acquireMs = elapsedMs(acqStart);
 
     try {
-      const conn = drizzle(client, { logger: true });
+      const conn = drizzle(client, { logger: drizzleLogger });
       const qStart = process.hrtime.bigint();
       let totalRows = 0;
       for (let q = 0; q < queriesPerWorker; q++) {
@@ -244,7 +252,7 @@ async function main() {
     idle: pool.idleCount,
   });
 
-  const db = drizzle(pool, { logger: true });
+  const db = drizzle(pool, { logger: drizzleLogger });
 
   try {
     await logServerInfo(db);
@@ -283,11 +291,16 @@ async function main() {
     const remaining = probeInterval * 1000 - elapsed;
     if (remaining > 0) {
       await new Promise<void>((resolve) => {
-        const timer = setTimeout(resolve, remaining);
+        let timer: NodeJS.Timeout;
         const onSignal = () => {
           clearTimeout(timer);
           resolve();
         };
+        timer = setTimeout(() => {
+          process.off("SIGINT", onSignal);
+          process.off("SIGTERM", onSignal);
+          resolve();
+        }, remaining);
         process.once("SIGINT", onSignal);
         process.once("SIGTERM", onSignal);
       });
