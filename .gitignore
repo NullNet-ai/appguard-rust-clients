@@ -4,3 +4,4 @@ target
 .env
 .cargo
 dna-forms
+node_modules

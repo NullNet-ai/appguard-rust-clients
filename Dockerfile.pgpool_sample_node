@@ -1,0 +1,15 @@
+# Build:  docker build -f Dockerfile.pgpool_sample_node -t pgpool_sample_node .
+# Run:    docker run --rm -e DATABASE_URL=postgresql://admin:admin@timescale.color.dnamicro.net:5432/forms pgpool_sample_node
+
+FROM node:20-slim
+
+WORKDIR /app
+
+COPY pgpool_sample_node/package.json pgpool_sample_node/package-lock.json ./
+RUN npm ci --no-audit --no-fund
+
+COPY pgpool_sample_node/tsconfig.json ./
+COPY pgpool_sample_node/drizzle.config.ts ./
+COPY pgpool_sample_node/src ./src
+
+CMD ["npx", "tsx", "src/index.ts"]
