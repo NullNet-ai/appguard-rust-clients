@@ -1,0 +1,177 @@
+version: '3.8'
+
+volumes:
+  timecale-data-1:
+  redis-data:
+  portal-data:
+  s3-data:
+  datastore-dump:
+
+
+services:
+  # Minio S3 File Storage Service
+  minio:
+    image: minio/minio
+    volumes:
+      - s3-data:/data
+    environment:
+      MINIO_ACCESS_KEY: vKAZYixpKotY5qcNTJt8HRS27ur5tkYf
+      MINIO_SECRET_KEY: 6baeV9nvWDAf7hc1bic0zsxvR8tPdW2V
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.hostname == docker-nullnet-133-10-4 # Set to the node where Minio Server should run
+
+  # Redis Caching Service
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis-data:/data
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.hostname == docker-nullnet-133-10-4 # Set to the node where Redis should run
+
+  # Timescale Database Service
+  timescale:
+    image: timescale/timescaledb:latest-pg17
+    environment:
+      POSTGRES_PASSWORD: admin
+      POSTGRES_USER: admin
+      POSTGRES_DB: forms
+    volumes:
+      - timecale-data-1:/var/lib/postgresql/data
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.hostname == docker-nullnet-133-10-4 # Set to the node where Timescale should run
+
+  # Forms Portal Service
+  portal:
+    # image: registry.dnamicro.com/forms-portal:development-120364
+    image: registry.dnamicro.com/forms-portal:feature-streaming-121300
+    command: 'pnpm start --  -p 3000'
+    volumes:
+      - portal-data:/var/app/data
+    environment:
+      TZ: 'America/Los_Angeles'
+      DEBUG: 'true'
+      SLICE_MAX_TOKENS: 100
+      ENABLE_TRANSFORMER: "false"
+      REDIS_URL: 'redis://redis.color.dnamicro.net:6379/4' # Redis URL
+      STORE_URL: 'http://datastore.color.dnamicro.net:5001' # Forms Datastore URL
+      SESSION_JWT_SECRET: 'DNAR0cks!!'
+      # MASTRA_STORAGE_POSTGRES_URL: 'postgres://admin:admin@ruvectordb:5432/mastra' # MASTRA Storage Database URL
+      # MASTRA_VECTOR_POSTGRES_URL: 'postgres://admin:admin@ruvectordb:5432/mastra' # MASTRA Vector Database URL
+      # FORM_SUBMISSION_LOG_ONLY_IN: "qa"
+      ROOT_ACCOUNT_PASSWORD: 'pl3@s3ch@ng3m3!!'
+      OPERATION_TIMEOUT: 1000
+      NODE_ENV: production
+      # VECTOR_BACKEND: ruvector
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.hostname == docker-nullnet-133-10-2 # Set to the node where Portal should run
+
+  # Forms Datastore Service
+  datastore:
+    image: registry.dnamicro.com/forms-datastore:development-120938 #119697
+    command: 'npm run start'
+    #command: 'npm run drizzle:migrate'
+    #command:  sh -c 'sleep 10 && npm run start'
+    volumes:
+      - datastore-dump:/var/dump
+    environment:
+      NODE_ENV: 'production'
+      SCRIPT_INIT: 'false'
+      DEFAULT_ORGANIZATION_ADMIN_PASSWORD: 'ch@ng3m3Pl3@s3!!'
+      PORT: '5001'
+      TZ: America/Los_Angeles
+      #REDIS_CACHE_ENDPOINT: redis.color.dnamicro.net
+      REDIS_CACHE_ENDPOINT: redis
+      REDIS_CACHE_PORT: 6379
+      REDIS_CACHE_INDEX: 10
+      DB_FILE_DIR: sql
+      DATABASE_URL: postgresql://admin:admin@timescale.color.dnamicro.net:5432/forms # Timescale Database URL
+      #DATABASE_URL: postgresql://admin:admin@timescale:5432/forms # Timescale Database URL
+      # DB_HOST: timescale # Timescale Database Host
+      DB_HOST: timescale.color.dnamicro.net # Timescale Database Host
+      DB_NAME: forms
+      DB_USER: admin
+      DB_PASSWORD: admin
+      DB_PORT: 5432
+      DATABASE: postgresql
+      STORAGE_UPLOAD_PATH: './upload'
+      #STORAGE_ENDPOINT: 'minio.color.dnamicro.net' # Minio Server Endpoint
+      STORAGE_ENDPOINT: 'minio'
+      STORAGE_PORT: 9000
+      STORAGE_ACCESS_KEY: 'vKAZYixpKotY5qcNTJt8HRS27ur5tkYf'
+      STORAGE_SECRET_KEY: '6baeV9nvWDAf7hc1bic0zsxvR8tPdW2V'
+      STORAGE_BUCKET_NAME: 'forms'
+      STORAGE_REGION: 'us-east-1'
+      STORAGE_TIMEOUT: 10000
+      DEBUG: 'true'
+    # extra_hosts:
+      # - "timescale.color.dnamicro.net:192.0.2.99"
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.hostname == docker-nullnet-133-10-3 # Set to the node where Datastore should run
+
+#  datastore:
+#    image: pgpool-sample-node:latest
+#    environment:
+#      # Log level: bump sqlx to debug to see every prepared/executed query.
+#      RUST_LOG: 'info,sqlx=debug'
+#      # Target DB reached via nullnet service name (same as the old Node datastore).
+#      DATABASE_URL: 'postgresql://admin:admin@timescale.color.dnamicro.net:5432/forms'
+#
+#      # --- Pool sizing ---
+#      # Connections opened eagerly at startup. Forces parallel overlay bring-up.
+#      PG_MIN_CONNECTIONS: '2'
+#      # Hard cap on pooled connections. Match PROBE_CONCURRENCY to fully saturate.
+#      PG_MAX_CONNECTIONS: '8'
+#      # How long a worker waits for a free slot before erroring.
+#      PG_ACQUIRE_TIMEOUT_SECS: '10'
+#      # sqlx drops connections idle longer than this. Low value = more reconnects through nullnet.
+#      PG_IDLE_TIMEOUT_SECS: '60'
+#      # sqlx recycles connections older than this regardless of idleness.
+#      PG_MAX_LIFETIME_SECS: '600'
+#
+#      # --- Probe workload ---
+#      # Seconds between probe rounds.
+#      PROBE_INTERVAL_SECS: '5'
+#      # Concurrent workers per round. With PG_MAX_CONNECTIONS=8, this saturates the pool.
+#      PROBE_CONCURRENCY: '8'
+#      # Queries each worker runs back-to-back on a single acquired connection.
+#      # Bumps sustained per-flow traffic through the overlay (40 queries/round at 8 workers x 5).
+#      QUERIES_PER_WORKER: '5'
+#      # Rows seeded into the hypertable on startup (TRUNCATE + bulk INSERT).
+#      # The bulk insert itself is a useful nullnet stress test (large single SQL op).
+#      # Set to 0 to skip seeding (e.g. on later restarts if you want to preserve data).
+#      SEED_ROWS: '10000'
+#
+#      TZ: America/Los_Angeles
+#    deploy:
+#      replicas: 1
+#      placement:
+#        constraints:
+#          - node.hostname == docker-nullnet-133-10-3
+
+
+docker exec -it bc curl --location 'http://localhost:5001/api/organizations/auth' \
+--header 'Content-Type: application/json' \
+--data-raw '{
+    "data": {
+        "account_id": "admin@dnamicro.com",
+        "account_secret": "ch@ng3m3Pl3@s3!!"
+    }
+}'
+

@@ -1,6 +1,6 @@
 # Build:  docker build -t actix-sample .
 # Run:    docker run --network none \
-#             -v /root/nullnet/members/nullnet-server/graph.dot:/graph.dot:ro \
+#             -v /root/nullnet/members/nullnet-server/graphs:/graphs:ro \
 #             actix-sample
 
 # Build stage

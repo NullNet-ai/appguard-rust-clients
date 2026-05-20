@@ -11,9 +11,9 @@ const FILESERVER: &str = "fs.color.dnamicro.net";
 const FILESERVER_PORT: u16 = 8080;
 const WEBSERVER: &str = "0.0.0.0";
 const TIMESTAMP_SERVER: &str = "timestamp_server.color.dnamicro.net:5555";
-// Path inside the container; the host file is expected to be mounted here,
-// e.g. -v /root/nullnet/members/nullnet-server/graph.dot:/graph.dot:ro
-const GRAPH_DOT: &str = "/graph.dot";
+// Directory inside the container; the host directory is expected to be mounted here,
+// e.g. -v /root/nullnet/members/nullnet-server/graphs:/graphs:ro
+const GRAPHS_DIR: &str = "/graphs";
 
 struct TimestampConn {
     reader: BufReader<OwnedReadHalf>,
@@ -30,10 +30,26 @@ impl TimestampConn {
     }
 }
 
-async fn render_graph_svg() -> Result<String, String> {
-    let dot = tokio::fs::read(GRAPH_DOT)
+async fn list_stacks() -> std::io::Result<Vec<String>> {
+    let mut entries = tokio::fs::read_dir(GRAPHS_DIR).await?;
+    let mut stacks = Vec::new();
+    while let Some(entry) = entries.next_entry().await? {
+        let path = entry.path();
+        if path.extension().and_then(|s| s.to_str()) == Some("dot") {
+            if let Some(stem) = path.file_stem().and_then(|s| s.to_str()) {
+                stacks.push(stem.to_string());
+            }
+        }
+    }
+    stacks.sort();
+    Ok(stacks)
+}
+
+async fn render_graph_svg(stack: &str) -> Result<String, String> {
+    let path = format!("{GRAPHS_DIR}/{stack}.dot");
+    let dot = tokio::fs::read(&path)
         .await
-        .map_err(|e| format!("could not read {GRAPH_DOT}: {e}"))?;
+        .map_err(|e| format!("could not read {path}: {e}"))?;
 
     let mut child = Command::new("dot")
         .arg("-Tsvg")
@@ -72,7 +88,9 @@ async fn render_graph_svg() -> Result<String, String> {
     Ok(svg)
 }
 
-async fn remote_color(conn: web::Data<Mutex<TimestampConn>>) -> impl Responder {
+async fn fetch_color_and_timestamp(
+    conn: &web::Data<Mutex<TimestampConn>>,
+) -> (String, String, String) {
     let (timestamp, opened_at) = {
         let mut guard = conn.lock().await;
         let opened_at = guard.opened_at.clone();
@@ -85,10 +103,59 @@ async fn remote_color(conn: web::Data<Mutex<TimestampConn>>) -> impl Responder {
 
     let remote = format!("http://{FILESERVER}:{FILESERVER_PORT}");
     let color = reqwest::get(remote).await.unwrap().text().await.unwrap();
-    let graph = match render_graph_svg().await {
+    (color, timestamp, opened_at)
+}
+
+fn stack_nav(stacks: &[String], current: Option<&str>) -> String {
+    if stacks.is_empty() {
+        return String::from("<p>no stacks available</p>");
+    }
+    let mut html = String::from(
+        "<div style=\"display:flex;flex-wrap:wrap;gap:0.5rem;justify-content:center;padding:0.5rem;\">",
+    );
+    for s in stacks {
+        let active = current == Some(s.as_str());
+        let style = if active {
+            "background:#000;color:#fff;padding:0.3rem 0.7rem;border-radius:4px;text-decoration:none;"
+        } else {
+            "background:#fff;color:#000;padding:0.3rem 0.7rem;border-radius:4px;text-decoration:none;border:1px solid #000;"
+        };
+        let _ = std::fmt::Write::write_fmt(
+            &mut html,
+            format_args!("<a href=\"/{s}\" style=\"{style}\">{s}</a>"),
+        );
+    }
+    html.push_str("</div>");
+    html
+}
+
+async fn stack_page(stack: web::Path<String>) -> impl Responder {
+    let stack = stack.into_inner();
+    let stacks = list_stacks().await.unwrap_or_default();
+    let nav = stack_nav(&stacks, Some(&stack));
+    let graph = match render_graph_svg(&stack).await {
         Ok(svg) => svg,
         Err(e) => format!("<pre>graph unavailable: {e}</pre>"),
     };
+    let body = format!(
+        "<!DOCTYPE html>
+    <html>
+        <body style=\"display:flex;flex-direction:column;min-height:100vh;align-items:center;margin:0;\">
+            <div align=\"center\" style=\"width:100vw;margin:0 auto;padding:1rem 0;\">
+                {nav}
+                <h2>{stack}</h2>
+                <div style=\"max-width:95vw;overflow:auto;\">{graph}</div>
+            </div>
+        </body>
+    </html>"
+    );
+    HttpResponse::Ok().body(body)
+}
+
+async fn index_page(conn: web::Data<Mutex<TimestampConn>>) -> impl Responder {
+    let (color, timestamp, opened_at) = fetch_color_and_timestamp(&conn).await;
+    let stacks = list_stacks().await.unwrap_or_default();
+    let nav = stack_nav(&stacks, None);
     let body = format!(
         "<!DOCTYPE html>
     <html>
@@ -99,8 +166,8 @@ async fn remote_color(conn: web::Data<Mutex<TimestampConn>>) -> impl Responder {
                 <p>connection opened at: {opened_at}</p>
             </div>
             <div align=\"center\" style=\"background:#ffffffcc;color:#000000;width:100vw;margin:0 auto;padding:1rem 0;\">
-                <h2>architecture</h2>
-                <div style=\"max-width:95vw;overflow:auto;\">{graph}</div>
+                <h2>stacks</h2>
+                {nav}
             </div>
         </body>
     </html>"
@@ -140,11 +207,13 @@ async fn main() -> std::io::Result<()> {
 
     println!("Running on {WEBSERVER}:3001");
     println!("Interacting with file server at {FILESERVER}:{FILESERVER_PORT}");
+    println!("Serving graphs from {GRAPHS_DIR}");
 
     HttpServer::new(move || {
         App::new()
             .app_data(conn.clone())
-            .default_service(web::get().to(remote_color))
+            .route("/", web::get().to(index_page))
+            .route("/{stack}", web::get().to(stack_page))
     })
     .bind((WEBSERVER, 3001))?
     .run()

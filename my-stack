@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  actix-sample:
+    image: actix-sample:latest
+    network_mode: "none"
+    volumes:
+      - /root/nullnet/members/nullnet-server/graph.dot:/graph.dot:ro
+    restart: unless-stopped
+
+  fileserver:
+    image: fileserver:latest
+    network_mode: "none"
+    restart: unless-stopped
+
+  timestamp_server:
+    image: timestamp_server:latest
+    ports:
+      - "5555:5555"
+    restart: unless-stopped
