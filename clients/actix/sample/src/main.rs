@@ -131,18 +131,19 @@ fn stack_nav(stacks: &[String], current: Option<&str>) -> String {
 
 async fn stack_page(stack: web::Path<String>) -> impl Responder {
     let stack = stack.into_inner();
-    let stacks = list_stacks().await.unwrap_or_default();
-    let nav = stack_nav(&stacks, Some(&stack));
     let graph = match render_graph_svg(&stack).await {
         Ok(svg) => svg,
         Err(e) => format!("<pre>graph unavailable: {e}</pre>"),
     };
+    let back = "<div style=\"display:flex;justify-content:center;padding:0.5rem;\">\
+            <a href=\"/\" style=\"background:#fff;color:#000;padding:0.3rem 0.7rem;border-radius:4px;text-decoration:none;border:1px solid #000;\">HOMEPAGE</a>\
+        </div>";
     let body = format!(
         "<!DOCTYPE html>
     <html>
         <body style=\"display:flex;flex-direction:column;min-height:100vh;align-items:center;margin:0;\">
             <div align=\"center\" style=\"width:100vw;margin:0 auto;padding:1rem 0;\">
-                {nav}
+                {back}
                 <h2>{stack}</h2>
                 <div style=\"max-width:95vw;overflow:auto;\">{graph}</div>
             </div>
